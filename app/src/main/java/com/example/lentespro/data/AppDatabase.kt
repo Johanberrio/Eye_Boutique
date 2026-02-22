@@ -8,8 +8,9 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [ProductEntity::class,
                 SaleEntity::class,
-                SaleItemEntity::class],
-    version = 3,
+                SaleItemEntity::class,
+                MessengerEntity::class],
+    version = 4,
 
     exportSchema = false
 )
@@ -17,6 +18,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun productDao(): ProductDao
     abstract fun saleDao(): SaleDao
+
+    abstract fun messengerDao(): MessengerDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

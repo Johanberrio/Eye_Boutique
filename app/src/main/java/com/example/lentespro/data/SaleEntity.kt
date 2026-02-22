@@ -16,9 +16,14 @@ data class SaleEntity(
     val messengerName: String? = null,
 
     // info opcional
-    val customerName: String? = null,
     val notes: String? = null,
 
     // total final cobrado (solo vendido)
-    val total: Double = 0.0
+    val total: Double = 0.0,
+
+    val customerName: String? = null,
+    val customerPhone1: String? = null,
+    val customerPhone2: String? = null,
+    val customerAddress: String? = null,
+    val customerNeighborhood: String? = null,
 )

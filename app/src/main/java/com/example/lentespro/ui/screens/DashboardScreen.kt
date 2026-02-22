@@ -19,7 +19,9 @@ fun DashboardScreen(
     inventoryViewModel: InventoryViewModel,
     onGoToInventory: () -> Unit,
     onAddProduct: () -> Unit,
-    onGoToRoutes: () -> Unit
+    onGoToRoutes: () -> Unit,
+    onGoToMessengers: () -> Unit
+
 ) {
     val products = inventoryViewModel.products.collectAsState()
     val totalLentes = inventoryViewModel.totalLentes.collectAsState()
@@ -94,13 +96,12 @@ fun DashboardScreen(
                 Text("Rutas (salidas y entregas)")
             }
 
+            Button(
+                onClick = onGoToMessengers,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Mensajeros") }
 
-            Card {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Siguiente paso 🤔", style = MaterialTheme.typography.titleMedium)
-                    Text("En la Parte 2 agregamos: Ventas, descuento automático de inventario e historial.")
-                }
-            }
+
         }
     }
 }

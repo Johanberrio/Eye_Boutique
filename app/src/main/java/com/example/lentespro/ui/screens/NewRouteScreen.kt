@@ -3,19 +3,22 @@ package com.example.lentespro.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.TwoWheeler
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.lentespro.ui.viewmodel.NewRouteEvent
 import com.example.lentespro.ui.viewmodel.NewRouteViewModel
 import com.example.lentespro.util.Formatters
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +28,8 @@ fun NewRouteScreen(
 ) {
     val state by viewModel.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
@@ -52,113 +57,184 @@ fun NewRouteScreen(
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
 
-        Column(
+        LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = state.messengerName,
-                onValueChange = viewModel::setMessengerName,
-                label = { Text("Mensajero (opcional)") },
-                modifier = Modifier.fillMaxWidth()
-            )
 
-            OutlinedTextField(
-                value = state.notes,
-                onValueChange = viewModel::setNotes,
-                label = { Text("Notas / ruta (opcional)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // ---------- CLIENTE ----------
+            stickyHeader { SectionHeaderSticky("Cliente") }
 
-            Divider()
+            item {
+                OutlinedTextField(
+                    value = state.customerName,
+                    onValueChange = viewModel::setCustomerName,
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
 
-            Text("Domicilios (sale a ruta)", style = MaterialTheme.typography.titleMedium)
+            item {
+                OutlinedTextField(
+                    value = state.customerPhone1,
+                    onValueChange = viewModel::setCustomerPhone1,
+                    label = { Text("Celular 1") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = state.customerPhone2,
+                    onValueChange = viewModel::setCustomerPhone2,
+                    label = { Text("Celular 2 (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = state.customerAddress,
+                    onValueChange = viewModel::setCustomerAddress,
+                    label = { Text("Dirección") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = state.customerNeighborhood,
+                    onValueChange = viewModel::setCustomerNeighborhood,
+                    label = { Text("Barrio") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            item { Divider() }
+
+            // ---------- RUTA ----------
+            stickyHeader { SectionHeaderSticky("Ruta") }
+
+            item {
+                OutlinedTextField(
+                    value = state.messengerName,
+                    onValueChange = viewModel::setMessengerName,
+                    label = { Text("Mensajero (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = state.notes,
+                    onValueChange = viewModel::setNotes,
+                    label = { Text("Notas / ruta (opcional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item { Divider() }
+
+            // ---------- CARRITO ----------
+            stickyHeader { SectionHeaderSticky("Carrito (sale a ruta)") }
 
             if (state.cart.isEmpty()) {
-                Text("Agrega productos abajo para enviarlos a ruta.", style = MaterialTheme.typography.bodySmall)
+                item {
+                    Text(
+                        "Agrega productos abajo para enviarlos a ruta.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(state.cart, key = { it.productId }) { line ->
-                        Card {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                items(state.cart, key = { "cart_${it.productId}" }) { line ->
+                    Card {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(line.name, style = MaterialTheme.typography.titleSmall)
-                                    IconButton(onClick = { viewModel.removeFromCart(line.productId) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Quitar")
-                                    }
+                                Text(line.name, style = MaterialTheme.typography.titleSmall)
+                                IconButton(onClick = { viewModel.removeFromCart(line.productId) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Quitar")
                                 }
-
-                                Text("Stock disponible: ${line.stock}", style = MaterialTheme.typography.bodySmall)
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = line.quantity.toString(),
-                                        onValueChange = { v ->
-                                            val q = v.toIntOrNull() ?: 1
-                                            viewModel.setQty(line.productId, q)
-                                        },
-                                        label = { Text("Cantidad") },
-                                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f)
-                                    )
-
-                                    OutlinedTextField(
-                                        value = line.unitPrice.toString(),
-                                        onValueChange = { v ->
-                                            val p = v.replace(',', '.').toDoubleOrNull() ?: line.unitPrice
-                                            viewModel.setUnitPrice(line.productId, p)
-                                        },
-                                        label = { Text("Precio unit.") },
-                                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-
-                                Text("Subtotal: ${Formatters.money(line.lineTotal)}")
                             }
+
+                            Text("Stock disponible: ${line.stock}", style = MaterialTheme.typography.bodySmall)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = line.quantity.toString(),
+                                    onValueChange = { v ->
+                                        val q = v.toIntOrNull() ?: 1
+                                        viewModel.setQty(line.productId, q)
+                                    },
+                                    label = { Text("Cantidad") },
+                                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+
+                                OutlinedTextField(
+                                    value = line.unitPrice.toString(),
+                                    onValueChange = { v ->
+                                        val p = v.replace(',', '.').toDoubleOrNull() ?: line.unitPrice
+                                        viewModel.setUnitPrice(line.productId, p)
+                                    },
+                                    label = { Text("Precio unit.") },
+                                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                            }
+
+                            Text("Subtotal: ${Formatters.money(line.lineTotal)}")
                         }
                     }
                 }
             }
 
-            Divider()
+            item { Divider() }
 
-            Text("Agregar productos", style = MaterialTheme.typography.titleMedium)
+            // ---------- BUSCAR + LISTA PRODUCTOS ----------
+            stickyHeader { SectionHeaderSticky("Agregar productos") }
 
-            OutlinedTextField(
-                value = state.search,
-                onValueChange = viewModel::setSearch,
-                label = { Text("Buscar producto") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            item {
+                OutlinedTextField(
+                    value = state.search,
+                    onValueChange = viewModel::setSearch,
+                    label = { Text("Buscar producto") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.products, key = { it.id }) { p ->
-                    Card(
-                        onClick = { viewModel.addToCart(p) }
-                    ) {
+            if (state.products.isEmpty()) {
+                item {
+                    Text(
+                        "No hay productos para mostrar.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            } else {
+                items(state.products, key = { "prod_${it.id}" }) { p ->
+                    Card(onClick = { viewModel.addToCart(p) }) {
                         Column(Modifier.padding(12.dp)) {
                             Text("${p.nombre} (${p.marca})", style = MaterialTheme.typography.titleSmall)
                             Text(
@@ -170,15 +246,34 @@ fun NewRouteScreen(
                 }
             }
 
-            Button(
-                onClick = viewModel::dispatchToRoute,
-                enabled = !state.isSaving,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.TwoWheeler, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (state.isSaving) "Enviando..." else "Marcar como salió a ruta")
+            // ---------- BOTÓN FINAL ----------
+            item {
+                Button(
+                    onClick = viewModel::dispatchToRoute,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.LocalShipping, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (state.isSaving) "Enviando..." else "Marcar como salió a ruta")
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeaderSticky(title: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
     }
 }

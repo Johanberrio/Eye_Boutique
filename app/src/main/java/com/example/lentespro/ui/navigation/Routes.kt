@@ -9,6 +9,14 @@ sealed class Routes(val route: String) {
     data object NewRoute : Routes("newRoute")
     data object RoutesList : Routes("routes")
 
+    data object Messengers : Routes("messengers")
+
+
+
+    data object RouteDetail : Routes("routeDetail?saleId={saleId}") {
+        fun create(saleId: Long) = "routeDetail?saleId=$saleId"
+    }
+
 
     data object FinalizeRoute : Routes("finalizeRoute?saleId={saleId}") {
         fun create(saleId: Long) = "finalizeRoute?saleId=$saleId"

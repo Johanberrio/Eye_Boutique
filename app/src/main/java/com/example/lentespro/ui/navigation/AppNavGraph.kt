@@ -14,6 +14,7 @@ import com.example.lentespro.ui.screens.EditProductScreen
 import com.example.lentespro.ui.screens.InventoryScreen
 import com.example.lentespro.ui.screens.NewRouteScreen
 import com.example.lentespro.ui.screens.FinalizeRouteScreen
+import com.example.lentespro.ui.screens.MessengersScreen
 import com.example.lentespro.ui.viewmodel.EditProductViewModel
 import com.example.lentespro.ui.viewmodel.EditProductViewModelFactory
 import com.example.lentespro.ui.viewmodel.InventoryViewModel
@@ -25,6 +26,11 @@ import com.example.lentespro.ui.viewmodel.FinalizeRouteViewModelFactory
 import com.example.lentespro.ui.screens.RoutesListScreen
 import com.example.lentespro.ui.viewmodel.RoutesListViewModel
 import com.example.lentespro.ui.viewmodel.RoutesListViewModelFactory
+import com.example.lentespro.ui.screens.RouteDetailScreen
+import com.example.lentespro.ui.viewmodel.MessengersViewModel
+import com.example.lentespro.ui.viewmodel.MessengersViewModelFactory
+import com.example.lentespro.ui.viewmodel.RouteDetailViewModel
+import com.example.lentespro.ui.viewmodel.RouteDetailViewModelFactory
 
 
 @Composable
@@ -47,7 +53,9 @@ fun AppNavGraph(
                 inventoryViewModel = vm,
                 onGoToInventory = { navController.navigate(Routes.Inventory.route) },
                 onAddProduct = { navController.navigate(Routes.EditProduct.create(-1L)) },
-                onGoToRoutes = { navController.navigate(Routes.RoutesList.route) }
+                onGoToRoutes = { navController.navigate(Routes.RoutesList.route) },
+                onGoToMessengers = { navController.navigate(Routes.Messengers.route) }
+
 
             )
         }
@@ -114,7 +122,8 @@ fun AppNavGraph(
                 onNewRoute = { navController.navigate(Routes.NewRoute.route) },
                 onFinalizeRoute = { saleId ->
                     navController.navigate(Routes.FinalizeRoute.create(saleId))
-                }
+                },
+                onOpenDetail = { id -> navController.navigate(Routes.RouteDetail.create(id)) }
             )
         }
 
@@ -143,5 +152,41 @@ fun AppNavGraph(
                 onBack = { navController.popBackStack() }
             )
         }
+
+        composable(
+            route = Routes.RouteDetail.route,
+            arguments = listOf(
+                navArgument("saleId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
+            )
+        ) { backStackEntry ->
+            val saleId = backStackEntry.arguments?.getLong("saleId") ?: -1L
+
+            val vm: RouteDetailViewModel = viewModel(
+                factory = RouteDetailViewModelFactory(
+                    saleId = saleId,
+                    repo = container.saleRepository
+                )
+            )
+
+            RouteDetailScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.Messengers.route) {
+            val vm: MessengersViewModel = viewModel(
+                factory = MessengersViewModelFactory(container.messengerRepository)
+            )
+            MessengersScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+
     }
 }

@@ -8,28 +8,46 @@ class SaleRepository(
 ) {
     fun observeSales() = saleDao.observeSales()
     fun observeSaleWithItems(id: Long) = saleDao.observeSaleWithItems(id)
+    fun observeSaleHistoryCards() = saleDao.observeSaleHistoryCards()
 
     suspend fun getSaleWithItemsOnce(saleId: Long) = db.withTransaction {
         saleDao.getSaleWithItems(saleId)
     }
+
     /**
      * ✅ 1) SALIDA A RUTA:
      * - Inserta Sale con estado EN_RUTA
      * - Inserta items con dispatchedQty
      * - Descuenta inventario (cantidad -= dispatchedQty)
+     * - ✅ Guarda datos del CLIENTE en SaleEntity
      */
     suspend fun createRouteDispatch(
         messengerName: String?,
         notes: String?,
-        items: List<CreateRouteItem>
+        items: List<CreateRouteItem>,
+
+        // ✅ NUEVO: Datos del cliente
+        customerName: String,
+        customerPhone1: String,
+        customerPhone2: String?,
+        customerAddress: String,
+        customerNeighborhood: String
     ): Long {
         require(items.isNotEmpty()) { "La salida a ruta no puede estar vacía." }
+
+        // Validaciones mínimas (las fuertes ya las haces en el ViewModel)
+        /*require(customerName.trim().isNotBlank()) { "Nombre del cliente es obligatorio." }
+        require(customerPhone1.trim().isNotBlank()) { "Celular 1 del cliente es obligatorio." }
+        require(customerAddress.trim().isNotBlank()) { "Dirección del cliente es obligatoria." }
+        require(customerNeighborhood.trim().isNotBlank()) { "Barrio del cliente es obligatorio." }*/
 
         return db.withTransaction {
             val normalized = items.map { it.copy(quantity = it.quantity.coerceAtLeast(1)) }
 
-            val products = normalized.associate { it.productId to (saleDao.getProductById(it.productId)
-                ?: error("Producto no encontrado (id=${it.productId})")) }
+            val products = normalized.associate { i ->
+                i.productId to (saleDao.getProductById(i.productId)
+                    ?: error("Producto no encontrado (id=${i.productId})"))
+            }
 
             normalized.forEach { i ->
                 val p = products.getValue(i.productId)
@@ -44,7 +62,14 @@ class SaleRepository(
                     dispatchedAtEpochMillis = System.currentTimeMillis(),
                     messengerName = messengerName?.trim()?.ifBlank { null },
                     notes = notes?.trim()?.ifBlank { null },
-                    total = 0.0
+                    total = 0.0,
+
+                    // ✅ NUEVO: cliente
+                    customerName = customerName.trim(),
+                    customerPhone1 = customerPhone1.trim(),
+                    customerPhone2 = customerPhone2?.trim()?.ifBlank { null },
+                    customerAddress = customerAddress.trim(),
+                    customerNeighborhood = customerNeighborhood.trim()
                 )
             )
 

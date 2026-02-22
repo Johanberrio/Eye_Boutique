@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.lentespro.data.SaleEntity
+import com.example.lentespro.data.SaleHistoryCard
 import com.example.lentespro.data.SaleRepository
 import com.example.lentespro.data.SaleStatus
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,9 +21,9 @@ class RoutesListViewModel(
             .map { list -> list.filter { it.status == SaleStatus.EN_RUTA } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val finalizadas: StateFlow<List<SaleEntity>> =
-        repo.observeSales()
-            .map { list -> list.filter { it.status == SaleStatus.FINALIZADA } }
+    // ✅ HISTORIAL FINALIZADAS (1 tarjeta por venta)
+    val historyCards: StateFlow<List<SaleHistoryCard>> =
+        repo.observeSaleHistoryCards()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
 

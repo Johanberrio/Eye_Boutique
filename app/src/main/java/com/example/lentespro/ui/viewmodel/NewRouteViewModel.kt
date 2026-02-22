@@ -23,10 +23,19 @@ data class RouteCartLine(
 data class NewRouteUiState(
     val messengerName: String = "",
     val notes: String = "",
+
+    // ✅ Cliente (NUEVO)
+    val customerName: String = "",
+    val customerPhone1: String = "",
+    val customerPhone2: String = "",
+    val customerAddress: String = "",
+    val customerNeighborhood: String = "",
+
     val search: String = "",
     val products: List<ProductEntity> = emptyList(),
     val cart: List<RouteCartLine> = emptyList(),
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val error: String? = null
 )
 
 sealed class NewRouteEvent {
@@ -68,6 +77,13 @@ class NewRouteViewModel(
         searchQuery.value = v
     }
 
+    // ✅ Cliente setters (NUEVO)
+    fun setCustomerName(v: String) = _ui.update { it.copy(customerName = v) }
+    fun setCustomerPhone1(v: String) = _ui.update { it.copy(customerPhone1 = v) }
+    fun setCustomerPhone2(v: String) = _ui.update { it.copy(customerPhone2 = v) }
+    fun setCustomerAddress(v: String) = _ui.update { it.copy(customerAddress = v) }
+    fun setCustomerNeighborhood(v: String) = _ui.update { it.copy(customerNeighborhood = v) }
+
     fun addToCart(p: ProductEntity) {
         _ui.update { state ->
             val existing = state.cart.find { it.productId == p.id }
@@ -81,7 +97,11 @@ class NewRouteViewModel(
                 )
             } else {
                 state.cart.map {
-                    if (it.productId == p.id) it.copy(quantity = (it.quantity + 1).coerceAtMost(p.cantidad), stock = p.cantidad)
+                    if (it.productId == p.id)
+                        it.copy(
+                            quantity = (it.quantity + 1).coerceAtMost(p.cantidad),
+                            stock = p.cantidad
+                        )
                     else it
                 }
             }
@@ -95,30 +115,53 @@ class NewRouteViewModel(
 
     fun setQty(productId: Long, qty: Int) {
         _ui.update { state ->
-            state.copy(cart = state.cart.map { line ->
-                if (line.productId == productId) {
-                    val safe = qty.coerceAtLeast(1).coerceAtMost(line.stock)
-                    line.copy(quantity = safe)
-                } else line
-            })
+            state.copy(
+                cart = state.cart.map { line ->
+                    if (line.productId == productId) {
+                        val safe = qty.coerceAtLeast(1).coerceAtMost(line.stock)
+                        line.copy(quantity = safe)
+                    } else line
+                }
+            )
         }
     }
 
     fun setUnitPrice(productId: Long, price: Double) {
         _ui.update { state ->
-            state.copy(cart = state.cart.map { line ->
-                if (line.productId == productId) line.copy(unitPrice = price) else line
-            })
+            state.copy(
+                cart = state.cart.map { line ->
+                    if (line.productId == productId) line.copy(unitPrice = price) else line
+                }
+            )
         }
     }
 
     fun dispatchToRoute() {
         viewModelScope.launch {
             val state = _ui.value
+
             if (state.cart.isEmpty()) {
                 _events.emit(NewRouteEvent.Error("Agrega al menos un producto para salir a ruta."))
                 return@launch
             }
+
+            // ✅ Validaciones Cliente (NUEVO)
+            /*if (state.customerName.trim().isBlank()) {
+                _events.emit(NewRouteEvent.Error("El nombre del cliente es obligatorio."))
+                return@launch
+            }
+            if (state.customerPhone1.trim().isBlank()) {
+                _events.emit(NewRouteEvent.Error("El celular 1 del cliente es obligatorio."))
+                return@launch
+            }
+            if (state.customerAddress.trim().isBlank()) {
+                _events.emit(NewRouteEvent.Error("La dirección del cliente es obligatoria."))
+                return@launch
+            }
+            if (state.customerNeighborhood.trim().isBlank()) {
+                _events.emit(NewRouteEvent.Error("El barrio del cliente es obligatorio."))
+                return@launch
+            }*/
 
             _ui.update { it.copy(isSaving = true) }
 
@@ -131,14 +174,21 @@ class NewRouteViewModel(
                     )
                 }
 
+                // ✅ Se envían datos del cliente al repositorio (NUEVO)
                 val saleId = saleRepo.createRouteDispatch(
-                    messengerName = state.messengerName,
-                    notes = state.notes,
-                    items = items
+                    messengerName = state.messengerName.trim(),
+                    notes = state.notes.trim(),
+                    items = items,
+
+                    customerName = state.customerName.trim(),
+                    customerPhone1 = state.customerPhone1.trim(),
+                    customerPhone2 = state.customerPhone2.trim().ifBlank { null },
+                    customerAddress = state.customerAddress.trim(),
+                    customerNeighborhood = state.customerNeighborhood.trim()
                 )
 
                 _events.emit(NewRouteEvent.Success(saleId))
-                _ui.value = NewRouteUiState()
+                _ui.value = NewRouteUiState() // resetea formulario completo
             } catch (e: Exception) {
                 _events.emit(NewRouteEvent.Error(e.message ?: "Error creando salida a ruta"))
                 _ui.update { it.copy(isSaving = false) }

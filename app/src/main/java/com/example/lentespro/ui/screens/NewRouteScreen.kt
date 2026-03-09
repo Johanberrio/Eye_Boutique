@@ -17,10 +17,12 @@ import com.example.lentespro.ui.viewmodel.NewRouteEvent
 import com.example.lentespro.ui.viewmodel.NewRouteViewModel
 import com.example.lentespro.util.Formatters
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyListState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NewRouteScreen(
     viewModel: NewRouteViewModel,

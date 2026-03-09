@@ -107,7 +107,9 @@ class SaleRepository(
      */
     suspend fun finalizeDispatch(
         saleId: Long,
-        soldByProductId: Map<Long, Int>
+        soldByProductId: Map<Long, Int>,
+        sellerUid: String,
+        sellerName: String
     ) {
         db.withTransaction {
             val sw = saleDao.getSaleWithItems(saleId) ?: error("Salida no encontrada (id=$saleId).")
@@ -145,7 +147,9 @@ class SaleRepository(
                 sw.sale.copy(
                     status = SaleStatus.FINALIZADA,
                     finalizedAtEpochMillis = System.currentTimeMillis(),
-                    total = totalSold
+                    total = totalSold,
+                    sellerUid = sellerUid,
+                    sellerName = sellerName
                 )
             )
         }

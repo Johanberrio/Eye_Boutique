@@ -3,8 +3,7 @@ package com.example.lentespro.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lentespro.data.SaleRepository
-import com.example.lentespro.data.SaleWithItems
+import com.example.lentespro.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -25,7 +24,11 @@ data class FinalizeUiState(
     val notes: String = "",
     val lines: List<FinalizeLine> = emptyList(),
     val isLoading: Boolean = true,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val isAdmin: Boolean = false,
+    val sellerOptions: List<SellerOption> = emptyList(),
+    val selectedSellerUid: String = "",
+    val selectedSellerName: String = ""
 ) {
     val totalSold: Double = lines.sumOf { it.soldTotal }
 }
@@ -37,7 +40,9 @@ sealed class FinalizeEvent {
 
 class FinalizeRouteViewModel(
     private val saleId: Long,
-    private val repo: SaleRepository
+    private val repo: SaleRepository,
+    private val authProfileRepo: AuthProfileRepository,
+    private val usersRemoteRepo: UsersRemoteRepository
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(FinalizeUiState(saleId = saleId, isLoading = true))
@@ -49,16 +54,44 @@ class FinalizeRouteViewModel(
     init {
         viewModelScope.launch {
             try {
+                // (A) Cargar venta desde Room
                 val sw = repo.getSaleWithItemsOnce(saleId)
                 if (sw == null) {
                     _ui.value = FinalizeUiState(saleId = saleId, isLoading = false)
                     _events.emit(FinalizeEvent.Error("Salida no encontrada (id=$saleId)."))
                     return@launch
                 }
-                _ui.value = sw.toUi()
+                
+                // (B) Cargar perfil del usuario actual desde Firestore
+                val me = authProfileRepo.getUserProfile()
+
+                _ui.update { st ->
+                    sw.toUi().copy(
+                        isAdmin = (me.role == UserRole.ADMIN),
+                        selectedSellerUid = me.uid,
+                        selectedSellerName = me.displayName
+                    )
+                }
+
+                // (C) Si es ADMIN, cargar lista de vendedores para el dropdown
+                if (me.role == UserRole.ADMIN) {
+                    val sellers = usersRemoteRepo.getSellers()
+
+                    // Incluir al admin actual en la lista si no está
+                    val withMe = if (sellers.any { it.uid == me.uid }) {
+                        sellers
+                    } else {
+                        sellers + SellerOption(uid = me.uid, displayName = me.displayName)
+                    }.sortedBy { it.displayName.lowercase() }
+
+                    _ui.update { st ->
+                        st.copy(sellerOptions = withMe)
+                    }
+                }
+
             } catch (e: Exception) {
-                _ui.value = FinalizeUiState(saleId = saleId, isLoading = false)
-                _events.emit(FinalizeEvent.Error(e.message ?: "Error cargando la salida"))
+                _ui.update { it.copy(isLoading = false) }
+                _events.emit(FinalizeEvent.Error(e.message ?: "Error cargando datos"))
             }
         }
     }
@@ -76,16 +109,30 @@ class FinalizeRouteViewModel(
         }
     }
 
+    fun selectSeller(uid: String, name: String) {
+        _ui.update { it.copy(selectedSellerUid = uid, selectedSellerName = name) }
+    }
+
     fun finalize() {
         viewModelScope.launch {
             val state = _ui.value
             if (state.isSaving) return@launch
+            
+            if (state.selectedSellerUid.isBlank()) {
+                _events.emit(FinalizeEvent.Error("Debes seleccionar un vendedor"))
+                return@launch
+            }
 
             _ui.update { it.copy(isSaving = true) }
 
             try {
                 val map = state.lines.associate { it.productId to it.sold }
-                repo.finalizeDispatch(saleId = state.saleId, soldByProductId = map)
+                repo.finalizeDispatch(
+                    saleId = state.saleId,
+                    soldByProductId = map,
+                    sellerUid = state.selectedSellerUid,
+                    sellerName = state.selectedSellerName
+                )
                 _events.emit(FinalizeEvent.Success)
             } catch (e: Exception) {
                 _events.emit(FinalizeEvent.Error(e.message ?: "Error finalizando"))
@@ -105,20 +152,21 @@ class FinalizeRouteViewModel(
                     name = it.productName,
                     dispatched = it.dispatchedQty,
                     unitPrice = it.unitPrice,
-                    sold = it.soldQty ?: 0
+                    sold = 0
                 )
             },
-            isLoading = false,
-            isSaving = false
+            isLoading = false
         )
     }
 }
 
 class FinalizeRouteViewModelFactory(
     private val saleId: Long,
-    private val repo: SaleRepository
+    private val repo: SaleRepository,
+    private val authProfileRepo: AuthProfileRepository,
+    private val usersRemoteRepo: UsersRemoteRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        FinalizeRouteViewModel(saleId, repo) as T
+        FinalizeRouteViewModel(saleId, repo, authProfileRepo, usersRemoteRepo) as T
 }

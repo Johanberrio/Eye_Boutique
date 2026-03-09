@@ -2,7 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.kapt)
+    id("com.google.gms.google-services")
+    //id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -50,11 +53,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.ui.text)
-    implementation(libs.androidx.compose.material.icons.extended)
-
+    implementation(libs.androidx.fragment.ktx)
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.transportation.consumer)
 
 
     testImplementation(libs.junit)
@@ -66,9 +70,18 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     
     // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-functions-ktx")
 
     // Desugaring para java.time
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")

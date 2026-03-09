@@ -26,4 +26,6 @@ data class SaleEntity(
     val customerPhone2: String? = null,
     val customerAddress: String? = null,
     val customerNeighborhood: String? = null,
+    val sellerUid: String? = null,
+    val sellerName: String? = null
 )

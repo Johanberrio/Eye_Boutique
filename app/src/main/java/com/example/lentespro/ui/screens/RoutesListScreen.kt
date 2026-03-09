@@ -308,6 +308,7 @@ private fun HistoryCardFinalizada(
             }
             Text("Producto: ${card.productName}")
             Text("Cantidad vendida: ${card.soldQty}")
+            Text("Vendedor: ${card.sellerName}")
             Text("Cliente: ${card.customerName ?: "—"}")
             Text("Celular: ${card.customerPhone1 ?: "—"}")
             Text("Mensajero: ${card.messengerName ?: "—"}")

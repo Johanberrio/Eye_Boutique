@@ -11,15 +11,22 @@ import androidx.room.RoomDatabase
                 SaleItemEntity::class,
                 MessengerEntity::class],
     version = 4,
-
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun productDao(): ProductDao
     abstract fun saleDao(): SaleDao
-
     abstract fun messengerDao(): MessengerDao
+
+    /**
+     * ✅ Fuerza un checkpoint para asegurar que los datos del log (-wal) 
+     * se muevan al archivo principal (.db). Vital para backups limpios.
+     */
+    fun checkpoint() {
+        val db = this.openHelper.writableDatabase
+        db.query("PRAGMA wal_checkpoint(FULL)").close()
+    }
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -31,7 +38,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "lentespro.db"
                 )
-                    // Para esta primera versión, simplifica iteración.
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

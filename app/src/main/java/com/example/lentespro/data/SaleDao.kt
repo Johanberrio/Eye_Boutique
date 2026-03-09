@@ -34,14 +34,25 @@ interface SaleDao {
         MIN(i.productName) AS productName,
         COALESCE(SUM(COALESCE(i.soldQty, 0)), 0) AS soldQty,
         s.customerName AS customerName,
-        s.customerPhone1 AS customerPhone1
+        s.customerPhone1 AS customerPhone1,
+        s.sellerUid AS sellerUid,
+        s.sellerName AS sellerName
     FROM sales s
     INNER JOIN sale_items i ON i.saleId = s.id
     WHERE s.finalizedAtEpochMillis IS NOT NULL
-    GROUP BY s.id, soldAtEpochMillis, s.messengerName, s.total, s.customerName
+    GROUP BY
+        s.id,
+        soldAtEpochMillis,
+        s.messengerName,
+        s.total,
+        s.customerName,
+        s.customerPhone1,
+        s.sellerUid,
+        s.sellerName
     ORDER BY soldAtEpochMillis DESC, s.id DESC
     """)
     fun observeSaleHistoryCards(): kotlinx.coroutines.flow.Flow<List<com.example.lentespro.data.SaleHistoryCard>>
+
 
 
     @Insert

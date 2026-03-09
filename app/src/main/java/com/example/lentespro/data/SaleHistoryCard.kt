@@ -8,7 +8,12 @@ data class SaleHistoryCard(
     val productName: String,
     val soldQty: Int,
     val customerName: String?,
-    val customerPhone1: String?
+    val customerPhone1: String?,
+    val sellerUid: String?,
+    val sellerName: String?
+
 )
+
+
 
 

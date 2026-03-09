@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "760363252316",
+    "project_id": "lentespro-c7130",
+    "storage_bucket": "lentespro-c7130.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760363252316:android:a65a0ed9ec5504e06c4499",
+        "android_client_info": {
+          "package_name": "com.example.lentespro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCq5ljEzzCVy_MVJ56kDWbSG-YvGs8cZak"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

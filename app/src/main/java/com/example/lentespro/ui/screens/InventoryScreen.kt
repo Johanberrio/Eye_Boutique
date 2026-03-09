@@ -21,6 +21,7 @@ import com.example.lentespro.util.Formatters
 @Composable
 fun InventoryScreen(
     inventoryViewModel: InventoryViewModel,
+    isAdmin: Boolean,
     onBack: () -> Unit,
     onAddProduct: () -> Unit,
     onEditProduct: (Long) -> Unit
@@ -38,8 +39,10 @@ fun InventoryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onAddProduct) {
-                        Icon(Icons.Default.Add, contentDescription = "Agregar")
+                    if (isAdmin) {
+                        IconButton(onClick = onAddProduct) {
+                            Icon(Icons.Default.Add, contentDescription = "Agregar")
+                        }
                     }
                 }
             )
@@ -70,7 +73,8 @@ fun InventoryScreen(
                 items(products, key = { it.id }) { product ->
                     ProductCard(
                         product = product,
-                        onClick = { onEditProduct(product.id) },
+                        isAdmin = isAdmin,
+                        onClick = { if (isAdmin) onEditProduct(product.id) },
                         onDelete = { inventoryViewModel.delete(product) }
                     )
                 }
@@ -83,13 +87,14 @@ fun InventoryScreen(
 @Composable
 private fun ProductCard(
     product: ProductEntity,
+    isAdmin: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
     val lowStock = product.cantidad <= product.stockMinimo
     val stockColor = if (lowStock) Color(0xFFB00020) else MaterialTheme.colorScheme.primary
 
-    Card(onClick = onClick) {
+    Card(onClick = onClick, enabled = isAdmin) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
@@ -99,7 +104,6 @@ private fun ProductCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        //text = "Tipo: ${product.tipo} | Potencia: ${product.potenciaEsferica}",
                         text = "Tipo: ${product.tipo}",
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -114,8 +118,10 @@ private fun ProductCard(
                     }
                 }
 
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                if (isAdmin) {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                    }
                 }
             }
 

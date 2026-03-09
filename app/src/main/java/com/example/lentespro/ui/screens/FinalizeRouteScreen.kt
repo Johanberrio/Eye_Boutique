@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.lentespro.data.SellerOption
 import com.example.lentespro.ui.viewmodel.FinalizeEvent
 import com.example.lentespro.ui.viewmodel.FinalizeRouteViewModel
 import com.example.lentespro.util.Formatters
@@ -73,18 +74,33 @@ fun FinalizeRouteScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+
+            // ✅ RESUMEN + VENDEDOR
             Card {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Salida #${state.saleId}", style = MaterialTheme.typography.titleMedium)
                     Text("Mensajero: ${state.messengerName.ifBlank { "—" }}")
                     if (state.notes.isNotBlank()) Text("Notas: ${state.notes}")
+
+                    Divider()
+
+                    // ✅ ADMIN puede escoger vendedor desde dropdown
+                    if (state.isAdmin) {
+                        SellerDropdown(
+                            options = state.sellerOptions,
+                            selectedName = state.selectedSellerName.ifBlank { "Selecciona vendedor" },
+                            onSelected = { opt -> viewModel.selectSeller(opt.uid, opt.displayName) }
+                        )
+                    } else {
+                        // SELLER: solo mostrar quién es
+                        Text("Vendedor: ${state.selectedSellerName.ifBlank { "—" }}")
+                    }
                 }
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(
                     onClick = {
-                        // vendido todo = sold = dispatched
                         state.lines.forEach { line ->
                             viewModel.setSold(line.productId, line.dispatched)
                         }
@@ -98,7 +114,6 @@ fun FinalizeRouteScreen(
 
                 OutlinedButton(
                     onClick = {
-                        // nada vendido = sold = 0
                         state.lines.forEach { line ->
                             viewModel.setSold(line.productId, 0)
                         }
@@ -165,6 +180,48 @@ fun FinalizeRouteScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(if (state.isSaving) "Finalizando..." else "Confirmar vendido y devoluciones")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SellerDropdown(
+    options: List<SellerOption>,
+    selectedName: String,
+    onSelected: (SellerOption) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedName,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Vendedor (solo admin)") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = { Text(opt.displayName) },
+                    onClick = {
+                        onSelected(opt)
+                        expanded = false
+                    }
+                )
             }
         }
     }

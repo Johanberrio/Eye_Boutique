@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,7 +46,7 @@ fun DashboardScreen(
     val isAlert = alertaTotalBajo
     val context = LocalContext.current
 
-    // Launcher para seleccionar dónde guardar el archivo (Drive, Local, etc.)
+    // Launcher para EXPORTAR
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
         onResult = { uri ->
@@ -54,7 +55,22 @@ fun DashboardScreen(
                     BackupManager.exportBackup(context, it)
                     Toast.makeText(context, "Backup guardado con éxito ✅", Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Error al guardar backup: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    )
+
+    // Launcher para IMPORTAR (Restaurar)
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri?.let {
+                try {
+                    BackupManager.importBackup(context, it)
+                    Toast.makeText(context, "Datos restaurados. Reinicia la app para ver los cambios 🔄", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Error al restaurar: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -157,17 +173,29 @@ fun DashboardScreen(
                 Divider()
                 Spacer(Modifier.height(8.dp))
 
-                // ✅ BOTÓN DE BACKUP MANUAL (Visible solo para Admin)
-                OutlinedButton(
-                    onClick = {
-                        val fileName = "LentesPro_Backup_${System.currentTimeMillis()}.db"
-                        exportLauncher.launch(fileName)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Backup, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Generar Backup Manual (Drive)")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val fileName = "LentesPro_Backup_${System.currentTimeMillis()}.db"
+                            exportLauncher.launch(fileName)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Backup, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Backup", maxLines = 1)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            importLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Restore, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Restaurar", maxLines = 1)
+                    }
                 }
             }
         }

@@ -3,10 +3,7 @@ package com.example.lentespro.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lentespro.data.SaleEntity
-import com.example.lentespro.data.SaleHistoryCard
-import com.example.lentespro.data.SaleRepository
-import com.example.lentespro.data.SaleStatus
+import com.example.lentespro.data.*
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -16,14 +13,32 @@ class RoutesListViewModel(
     repo: SaleRepository
 ) : ViewModel() {
 
+    // ✅ EN RUTA (Ventas filtradas por estado desde Firestore)
     val enRuta: StateFlow<List<SaleEntity>> =
         repo.observeSales()
             .map { list -> list.filter { it.status == SaleStatus.EN_RUTA } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // ✅ HISTORIAL FINALIZADAS (1 tarjeta por venta)
+    // ✅ HISTORIAL (Ventas finalizadas mapeadas a tarjetas)
     val historyCards: StateFlow<List<SaleHistoryCard>> =
-        repo.observeSaleHistoryCards()
+        repo.observeSales()
+            .map { list -> 
+                list.filter { it.status == SaleStatus.FINALIZADA }
+                    .map { sale ->
+                        SaleHistoryCard(
+                            saleId = sale.id,
+                            soldAtEpochMillis = sale.finalizedAtEpochMillis ?: sale.createdAtEpochMillis,
+                            messengerName = sale.messengerName,
+                            total = sale.total,
+                            firstItemName = sale.items.firstOrNull()?.productName ?: "Sin productos",
+                            soldQty = sale.items.sumOf { it.soldQty ?: 0 },
+                            customerName = sale.customerName,
+                            customerPhone1 = sale.customerPhone1,
+                            sellerUid = sale.sellerUid,
+                            sellerName = sale.sellerName
+                        )
+                    }
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
 

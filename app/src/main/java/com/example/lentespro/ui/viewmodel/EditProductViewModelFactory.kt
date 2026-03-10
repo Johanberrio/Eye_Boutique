@@ -6,7 +6,7 @@ import com.example.lentespro.data.ProductRepository
 
 class EditProductViewModelFactory(
     private val repo: ProductRepository,
-    private val productId: Long
+    private val productId: String
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

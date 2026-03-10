@@ -6,7 +6,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -78,7 +77,7 @@ fun AppNavGraph(
             DashboardScreen(
                 inventoryViewModel = inventoryVm,
                 onGoToInventory = { navController.navigate(Routes.Inventory.route) },
-                onAddProduct = { navController.navigate(Routes.EditProduct.create(-1L)) },
+                onAddProduct = { navController.navigate(Routes.EditProduct.create("new")) },
                 onGoToRoutes = { navController.navigate(Routes.RoutesList.route) },
                 onGoToMessengers = { navController.navigate(Routes.Messengers.route) },
                 isAdmin = isAdmin,
@@ -103,7 +102,7 @@ fun AppNavGraph(
                 inventoryViewModel = vm,
                 isAdmin = isAdmin,
                 onBack = { navController.popBackStack() },
-                onAddProduct = { navController.navigate(Routes.EditProduct.create(-1L)) },
+                onAddProduct = { navController.navigate(Routes.EditProduct.create("new")) },
                 onEditProduct = { id -> navController.navigate(Routes.EditProduct.create(id)) }
             )
         }
@@ -112,8 +111,8 @@ fun AppNavGraph(
             route = Routes.EditProduct.route,
             arguments = listOf(
                 navArgument("productId") {
-                    type = NavType.LongType
-                    defaultValue = -1L
+                    type = NavType.StringType
+                    defaultValue = "new"
                 }
             )
         ) { backStackEntry ->
@@ -122,7 +121,7 @@ fun AppNavGraph(
                 return@composable
             }
 
-            val productId = backStackEntry.arguments?.getLong("productId") ?: -1L
+            val productId = backStackEntry.arguments?.getString("productId") ?: "new"
             val vm: EditProductViewModel = viewModel(
                 factory = EditProductViewModelFactory(
                     repo = container.productRepository,
@@ -174,8 +173,8 @@ fun AppNavGraph(
             route = Routes.FinalizeRoute.route,
             arguments = listOf(
                 navArgument("saleId") {
-                    type = NavType.LongType
-                    defaultValue = -1L
+                    type = NavType.StringType
+                    defaultValue = ""
                 }
             )
         ) { backStackEntry ->
@@ -183,7 +182,7 @@ fun AppNavGraph(
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
             }
-            val saleId = backStackEntry.arguments?.getLong("saleId") ?: -1L
+            val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
             val vm: FinalizeRouteViewModel = viewModel(
                 factory = FinalizeRouteViewModelFactory(
                     saleId = saleId,
@@ -202,8 +201,8 @@ fun AppNavGraph(
             route = Routes.RouteDetail.route,
             arguments = listOf(
                 navArgument("saleId") {
-                    type = NavType.LongType
-                    defaultValue = -1L
+                    type = NavType.StringType
+                    defaultValue = ""
                 }
             )
         ) { backStackEntry ->
@@ -211,7 +210,7 @@ fun AppNavGraph(
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
             }
-            val saleId = backStackEntry.arguments?.getLong("saleId") ?: -1L
+            val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
             val vm: RouteDetailViewModel = viewModel(
                 factory = RouteDetailViewModelFactory(
                     saleId = saleId,

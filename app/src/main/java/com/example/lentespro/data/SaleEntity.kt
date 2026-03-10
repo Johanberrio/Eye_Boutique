@@ -1,12 +1,9 @@
 package com.example.lentespro.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.DocumentId
 
-@Entity(tableName = "sales")
 data class SaleEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
-
+    @DocumentId val id: String = "",
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
 
     // 🛵 logística
@@ -21,11 +18,23 @@ data class SaleEntity(
     // total final cobrado (solo vendido)
     val total: Double = 0.0,
 
-    val customerName: String? = null,
-    val customerPhone1: String? = null,
+    val customerName: String = "",
+    val customerPhone1: String = "",
     val customerPhone2: String? = null,
-    val customerAddress: String? = null,
-    val customerNeighborhood: String? = null,
+    val customerAddress: String = "",
+    val customerNeighborhood: String = "",
     val sellerUid: String? = null,
-    val sellerName: String? = null
+    val sellerName: String? = null,
+    
+    // Lista de items embebida para Firestore (más eficiente que tablas separadas)
+    val items: List<SaleItemEntity> = emptyList()
+)
+
+data class SaleItemEntity(
+    val productId: String = "",
+    val productName: String = "",
+    val unitPrice: Double = 0.0,
+    val dispatchedQty: Int = 0,
+    val soldQty: Int? = null,
+    val returnedQty: Int? = null
 )

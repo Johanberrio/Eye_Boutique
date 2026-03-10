@@ -1,8 +1,5 @@
 package com.example.lentespro.ui.screens
 
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -12,18 +9,14 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.lentespro.ui.viewmodel.InventoryViewModel
-import com.example.lentespro.util.BackupManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,37 +37,6 @@ fun DashboardScreen(
     val ventasHoy by inventoryViewModel.ventasHoyCount.collectAsState()
 
     val isAlert = alertaTotalBajo
-    val context = LocalContext.current
-
-    // Launcher para EXPORTAR
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
-        onResult = { uri ->
-            uri?.let {
-                try {
-                    BackupManager.exportBackup(context, it)
-                    Toast.makeText(context, "Backup guardado con éxito ✅", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    )
-
-    // Launcher para IMPORTAR (Restaurar)
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri ->
-            uri?.let {
-                try {
-                    BackupManager.importBackup(context, it)
-                    Toast.makeText(context, "Datos restaurados. Reinicia la app para ver los cambios 🔄", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Error al restaurar: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    )
 
     Scaffold(
         topBar = {
@@ -167,35 +129,6 @@ fun DashboardScreen(
                     Icon(Icons.Default.Group, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Usuarios (Admin)")
-                }
-
-                Spacer(Modifier.height(8.dp))
-                Divider()
-                Spacer(Modifier.height(8.dp))
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            val fileName = "LentesPro_Backup_${System.currentTimeMillis()}.db"
-                            exportLauncher.launch(fileName)
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Backup, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Backup", maxLines = 1)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            importLauncher.launch(arrayOf("application/octet-stream", "*/*"))
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Restore, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Restaurar", maxLines = 1)
-                    }
                 }
             }
         }

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class FinalizeLine(
-    val productId: Long,
+    val productId: String,
     val name: String,
     val dispatched: Int,
     val unitPrice: Double,
@@ -19,7 +19,7 @@ data class FinalizeLine(
 }
 
 data class FinalizeUiState(
-    val saleId: Long = -1L,
+    val saleId: String = "",
     val messengerName: String = "",
     val notes: String = "",
     val lines: List<FinalizeLine> = emptyList(),
@@ -39,7 +39,7 @@ sealed class FinalizeEvent {
 }
 
 class FinalizeRouteViewModel(
-    private val saleId: Long,
+    private val saleId: String,
     private val repo: SaleRepository,
     private val authProfileRepo: AuthProfileRepository,
     private val usersRemoteRepo: UsersRemoteRepository
@@ -54,19 +54,19 @@ class FinalizeRouteViewModel(
     init {
         viewModelScope.launch {
             try {
-                // (A) Cargar venta desde Room
-                val sw = repo.getSaleWithItemsOnce(saleId)
-                if (sw == null) {
-                    _ui.value = FinalizeUiState(saleId = saleId, isLoading = false)
+                // (A) Cargar venta desde Firestore
+                val sale = repo.getSaleOnce(saleId)
+                if (sale == null) {
+                    _ui.update { it.copy(isLoading = false) }
                     _events.emit(FinalizeEvent.Error("Salida no encontrada (id=$saleId)."))
                     return@launch
                 }
                 
-                // (B) Cargar perfil del usuario actual desde Firestore
+                // (B) Cargar perfil del usuario actual
                 val me = authProfileRepo.getUserProfile()
 
                 _ui.update { st ->
-                    sw.toUi().copy(
+                    sale.toUi().copy(
                         isAdmin = (me.role == UserRole.ADMIN),
                         selectedSellerUid = me.uid,
                         selectedSellerName = me.displayName
@@ -77,7 +77,6 @@ class FinalizeRouteViewModel(
                 if (me.role == UserRole.ADMIN) {
                     val sellers = usersRemoteRepo.getSellers()
 
-                    // Incluir al admin actual en la lista si no está
                     val withMe = if (sellers.any { it.uid == me.uid }) {
                         sellers
                     } else {
@@ -96,7 +95,7 @@ class FinalizeRouteViewModel(
         }
     }
 
-    fun setSold(productId: Long, sold: Int) {
+    fun setSold(productId: String, sold: Int) {
         _ui.update { state ->
             state.copy(
                 lines = state.lines.map { line ->
@@ -141,11 +140,11 @@ class FinalizeRouteViewModel(
         }
     }
 
-    private fun SaleWithItems.toUi(): FinalizeUiState {
+    private fun SaleEntity.toUi(): FinalizeUiState {
         return FinalizeUiState(
-            saleId = sale.id,
-            messengerName = sale.messengerName ?: "",
-            notes = sale.notes ?: "",
+            saleId = id,
+            messengerName = messengerName ?: "",
+            notes = notes ?: "",
             lines = items.map {
                 FinalizeLine(
                     productId = it.productId,
@@ -161,7 +160,7 @@ class FinalizeRouteViewModel(
 }
 
 class FinalizeRouteViewModelFactory(
-    private val saleId: Long,
+    private val saleId: String,
     private val repo: SaleRepository,
     private val authProfileRepo: AuthProfileRepository,
     private val usersRemoteRepo: UsersRemoteRepository

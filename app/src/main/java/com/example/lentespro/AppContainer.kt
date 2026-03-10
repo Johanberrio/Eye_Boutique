@@ -1,44 +1,35 @@
 package com.example.lentespro
 
 import android.content.Context
-import com.example.lentespro.data.AdminUsersRepository
-import com.example.lentespro.data.AppDatabase
-import com.example.lentespro.data.AuthProfileRepository
-import com.example.lentespro.data.AuthRepository
-import com.example.lentespro.data.BiometricPrefs
-import com.example.lentespro.data.MessengerRepository
-import com.example.lentespro.data.ProductRepository
-import com.example.lentespro.data.SaleRepository
-import com.example.lentespro.data.UsersRemoteRepository
+import com.example.lentespro.data.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 
 class AppContainer(context: Context) {
 
-    private val db = AppDatabase.get(context)
+    // ✅ Firebase singletons (Ahora son la única fuente de datos)
+    val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    val firebaseFunctions: FirebaseFunctions by lazy { FirebaseFunctions.getInstance() }
 
-    // Room repos
-    val productRepository: ProductRepository = ProductRepository(db.productDao())
+    // ✅ Repositorios migrados a Firestore
+    val productRepository: ProductRepository by lazy {
+        ProductRepository(firestore)
+    }
 
-    val saleRepository: SaleRepository = SaleRepository(
-        db = db,
-        saleDao = db.saleDao()
-    )
+    val saleRepository: SaleRepository by lazy {
+        SaleRepository(firestore)
+    }
 
     val messengerRepository: MessengerRepository by lazy {
-        MessengerRepository(db.messengerDao())
+        MessengerRepository(firestore)
     }
 
     // Biometría (local)
     val biometricPrefs = BiometricPrefs(context)
 
-    // ✅ Firebase singletons
-    val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
-    val firebaseFunctions: FirebaseFunctions by lazy { FirebaseFunctions.getInstance() }
-
-    // ✅ Admin (crear/borrar usuarios con Cloud Functions + Firestore)
+    // Gestión de usuarios
     val adminUsersRepository: AdminUsersRepository by lazy {
         AdminUsersRepository(
             auth = firebaseAuth,
@@ -47,7 +38,6 @@ class AppContainer(context: Context) {
         )
     }
 
-    // ✅ (Opcional) para dropdown de vendedores (Finalizar ruta)
     val usersRemoteRepository: UsersRemoteRepository by lazy {
         UsersRemoteRepository(firestore)
     }

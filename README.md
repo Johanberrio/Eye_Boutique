@@ -1,4 +1,4 @@
-# Eye_Boutique 👓
+# Eye_Boutique 
 
 **Versión 1.0**
 
@@ -128,16 +128,17 @@ La aplicación requiere los siguientes permisos (definidos en `AndroidManifest.x
 ```
 Este permiso habilita la autenticación biométrica para dispositivos soportados.
 
-📝 Notas de Versión (v1.0)
-Esta es la primera versión (MVP) de Eye_Boutique que incluye:
+## 📝 Notas de Versión (v1.0)
 
-✅ Sistema de autenticación completo con Firebase
-✅ Integración de autenticación biométrica
-✅ Base de datos Firestore funcional
-✅ Interfaz moderna con Compose y Material Design 3
-✅ Sistema de persistencia local con DataStore
-✅ Navegación entre pantallas optimizada
-✅ Arquitectura MVVM implementada
+Esta es la primera versión (**MVP**) de **Eye_Boutique** que incluye:
+
+- ✅ Sistema de autenticación completo con Firebase
+- ✅ Integración de autenticación biométrica
+- ✅ Base de datos Firestore funcional
+- ✅ Interfaz moderna con Compose y Material Design 3
+- ✅ Sistema de persistencia local con DataStore
+- ✅ Navegación entre pantallas optimizada
+- ✅ Arquitectura MVVM implementada
 
 🤝 Contribuciones
 Las contribuciones son bienvenidas. Para cambios importantes:

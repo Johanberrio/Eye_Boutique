@@ -125,8 +125,9 @@ La aplicación requiere los siguientes permisos (definidos en `AndroidManifest.x
 
 ```xml
 <uses-permission android:name="android.permission.USE_BIOMETRIC" />
-
+```
 Este permiso habilita la autenticación biométrica para dispositivos soportados.
+
 📝 Notas de Versión (v1.0)
 Esta es la primera versión (MVP) de Eye_Boutique que incluye:
 

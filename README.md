@@ -96,3 +96,6 @@ Configurar Firebase
 Descargar google-services.json de Firebase Console
 Colocar el archivo en la carpeta app/
 Compilar y ejecutar
+
+./gradlew build
+./gradlew installDebug

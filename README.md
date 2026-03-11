@@ -93,8 +93,8 @@ cd Eye_Boutique
 ```
 2. **Configurar Firebase**
 
-  1. Descargar `google-services.json` desde **Firebase Console**.  
-  2. Colocar el archivo en la carpeta `app/`.
+1. Descargar `google-services.json` desde **Firebase Console**.  
+2. Colocar el archivo en la carpeta `app/`.
 
 🏗️ Estructura del Proyecto
 Configurar Firebase

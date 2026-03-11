@@ -116,3 +116,39 @@ Eye_Boutique/
 ├── build.gradle.kts                            # Build script raíz
 ├── settings.gradle.kts                         # Configuración de proyectos
 └── gradle.properties                           # Propiedades globales de Gradle
+
+🔧 Configuración de Permisos
+La aplicación requiere los siguientes permisos (definidos en AndroidManifest.xml):
+
+XML
+<uses-permission android:name="android.permission.USE_BIOMETRIC" />
+📝 Notas de Versión (v1.0)
+Esta es la primera versión (MVP) de Eye_Boutique que incluye:
+
+✅ Sistema de autenticación completo con Firebase
+✅ Integración de autenticación biométrica
+✅ Base de datos Firestore funcional
+✅ Interfaz moderna con Compose y Material Design 3
+✅ Sistema de persistencia local con DataStore
+✅ Navegación entre pantallas optimizada
+✅ Arquitectura MVVM implementada
+
+🤝 Contribuciones
+Las contribuciones son bienvenidas. Para cambios importantes:
+
+Fork el proyecto
+Crea una rama para tu feature (git checkout -b feature/AmazingFeature)
+Commit tus cambios (git commit -m 'Add some AmazingFeature')
+Push a la rama (git push origin feature/AmazingFeature)
+Abre un Pull Request
+📄 Licencia
+Este proyecto está bajo licencia MIT. Consulta el archivo LICENSE para más detalles.
+
+👨‍💻 Autor
+Johan Berrio
+GitHub: @Johanberrio
+
+📞 Soporte
+Para reportar problemas o sugerencias, abre un issue en el repositorio.
+
+Última actualización: Marzo 2026

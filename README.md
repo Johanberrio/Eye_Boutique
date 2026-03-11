@@ -100,32 +100,25 @@ cd Eye_Boutique
 ./gradlew build
 ./gradlew installDebug
 ```
-🏗️ Estructura del Proyecto
-Configurar Firebase
 
-Descargar google-services.json de Firebase Console
-Colocar el archivo en la carpeta app/
-Compilar y ejecutar
-
-./gradlew build
-./gradlew installDebug
-
+## 🏗️ Estructura del Proyecto
+```bash
 Eye_Boutique/
 ├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/lentespro/    # Código fuente Kotlin
-│   │   │   ├── res/                            # Recursos (layouts, strings, etc.)
-│   │   │   └── AndroidManifest.xml            # Configuración de la aplicación
-│   │   ├── androidTest/                        # Pruebas instrumentadas
-│   │   └── test/                               # Pruebas unitarias
-│   ├── build.gradle.kts                        # Configuración del módulo app
-│   └── google-services.json                    # Configuración de Firebase
-├── gradle/                                      # Scripts de Gradle
-├── build.gradle.kts                            # Build script raíz
-├── settings.gradle.kts                         # Configuración de proyectos
-└── gradle.properties                           # Propiedades globales de Gradle
-
+│ ├── src/
+│ │ ├── main/
+│ │ │ ├── java/com/example/lentespro/ # Código fuente Kotlin
+│ │ │ ├── res/ # Recursos (layouts, strings, etc.)
+│ │ │ └── AndroidManifest.xml # Configuración de la aplicación
+│ │ ├── androidTest/ # Pruebas instrumentadas
+│ │ └── test/ # Pruebas unitarias
+│ ├── build.gradle.kts # Configuración del módulo app
+│ └── google-services.json # Configuración de Firebase
+├── gradle/ # Scripts de Gradle
+├── build.gradle.kts # Build script raíz
+├── settings.gradle.kts # Configuración de proyectos
+└── gradle.properties # Propiedades globales de Gradle
+```
 🔧 Configuración de Permisos
 La aplicación requiere los siguientes permisos (definidos en AndroidManifest.xml):
 

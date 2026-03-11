@@ -119,11 +119,14 @@ Eye_Boutique/
 ├── settings.gradle.kts # Configuración de proyectos
 └── gradle.properties # Propiedades globales de Gradle
 ```
-🔧 Configuración de Permisos
-La aplicación requiere los siguientes permisos (definidos en AndroidManifest.xml):
+## 🔧 Configuración de Permisos
 
-XML
+La aplicación requiere los siguientes permisos (definidos en `AndroidManifest.xml`):
+
+```xml
 <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+Este permiso habilita la autenticación biométrica para dispositivos soportados.
 📝 Notas de Versión (v1.0)
 Esta es la primera versión (MVP) de Eye_Boutique que incluye:
 

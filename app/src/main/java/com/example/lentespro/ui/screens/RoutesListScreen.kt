@@ -31,19 +31,18 @@ fun RoutesListScreen(
     viewModel: RoutesListViewModel,
     onBack: () -> Unit,
     onNewRoute: () -> Unit,
-    onFinalizeRoute: (Long) -> Unit,
-    onOpenDetail: (Long) -> Unit
+    onFinalizeRoute: (String) -> Unit,
+    onOpenDetail: (String) -> Unit
 ) {
     val enRuta by viewModel.enRuta.collectAsState()
     val historyCards by viewModel.historyCards.collectAsState()
 
-    // ✅ Filtros (FINALIZADAS)
-    var saleDateText by rememberSaveable { mutableStateOf("") }      // yyyy-MM-dd (vacío = todas)
+    var saleDateText by rememberSaveable { mutableStateOf("") }
     var selectedMessenger by rememberSaveable { mutableStateOf("Todos") }
     var productQuery by rememberSaveable { mutableStateOf("") }
-    var qtySoldText by rememberSaveable { mutableStateOf("") }       // cantidad vendida exacta (vacío = todas)
+    var qtySoldText by rememberSaveable { mutableStateOf("") }
 
-    val zone = remember { ZoneId.systemDefault() }
+    val zone = remember { ZoneId.of("America/Bogota") }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
 
     fun epochToLocalDate(epochMillis: Long): LocalDate =
@@ -55,11 +54,8 @@ fun RoutesListScreen(
     }
 
     val qtySold: Int? = remember(qtySoldText) { qtySoldText.trim().toIntOrNull() }
-
-    // ✅ Mensajeros fijos como pediste
     val messengerOptions = remember { listOf("Todos", "Jaime", "Adomibello") }
 
-    // ✅ Historial filtrado (FINALIZADAS)
     val historyFiltrado = remember(
         historyCards,
         selectedSaleDate,
@@ -71,22 +67,18 @@ fun RoutesListScreen(
 
         historyCards
             .asSequence()
-            // 1) Fecha de venta (día)
             .filter { card ->
                 if (selectedSaleDate == null) true
                 else epochToLocalDate(card.soldAtEpochMillis) == selectedSaleDate
             }
-            // 2) Mensajero
             .filter { card ->
                 if (selectedMessenger == "Todos") true
                 else (card.messengerName ?: "").trim().equals(selectedMessenger, ignoreCase = true)
             }
-            // 3) Producto
             .filter { card ->
                 if (q.isBlank()) true
-                else card.productName.lowercase(Locale.getDefault()).contains(q)
+                else card.firstItemName.lowercase(Locale.getDefault()).contains(q)
             }
-            // 4) Cantidad vendida EXACTA
             .filter { card ->
                 if (qtySold == null) true else card.soldQty == qtySold
             }
@@ -117,16 +109,14 @@ fun RoutesListScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // -------------------- EN RUTA --------------------
             Text("EN RUTA", style = MaterialTheme.typography.titleMedium)
 
             if (enRuta.isEmpty()) {
                 Text("No hay rutas en curso.", style = MaterialTheme.typography.bodySmall)
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 6.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(enRuta, key = { it.id }) { sale ->
                         RouteCardEnRuta(
@@ -140,61 +130,55 @@ fun RoutesListScreen(
 
             Divider()
 
-            // -------------------- FINALIZADAS (HISTORIAL) --------------------
-            Text("FINALIZADAS (historial de ventas)", style = MaterialTheme.typography.titleMedium)
+            Text("FINALIZADAS (historial)", style = MaterialTheme.typography.titleMedium)
 
-            // ✅ Filtros fuera del LazyColumn para que el foco funcione SIEMPRE
-            OutlinedTextField(
-                value = saleDateText,
-                onValueChange = { saleDateText = it },
-                label = { Text("Fecha de venta (AAAA-MM-dd)") },
-                supportingText = {
-                    if (saleDateText.isNotBlank() && selectedSaleDate == null) {
-                        Text("Formato inválido. Ejemplo: 2026-02-17")
-                    }
-                },
-                isError = saleDateText.isNotBlank() && selectedSaleDate == null,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = saleDateText,
+                    onValueChange = { saleDateText = it },
+                    label = { Text("Fecha (AAAA-MM-dd)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
-            MessengerDropdown(
-                options = messengerOptions,
-                selected = selectedMessenger,
-                onSelected = { selectedMessenger = it }
-            )
+                MessengerDropdown(
+                    options = messengerOptions,
+                    selected = selectedMessenger,
+                    onSelected = { selectedMessenger = it }
+                )
 
-            OutlinedTextField(
-                value = productQuery,
-                onValueChange = { productQuery = it },
-                label = { Text("Producto") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                OutlinedTextField(
+                    value = productQuery,
+                    onValueChange = { productQuery = it },
+                    label = { Text("Producto") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
-            OutlinedTextField(
-                value = qtySoldText,
-                onValueChange = { qtySoldText = it.filter { ch -> ch.isDigit() } },
-                label = { Text("Cantidad vendida") },
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                OutlinedTextField(
+                    value = qtySoldText,
+                    onValueChange = { qtySoldText = it.filter { ch -> ch.isDigit() } },
+                    label = { Text("Cantidad vendida") },
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
-            OutlinedButton(
-                onClick = {
-                    saleDateText = ""
-                    selectedMessenger = "Todos"
-                    productQuery = ""
-                    qtySoldText = ""
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Limpiar filtros")
+                OutlinedButton(
+                    onClick = {
+                        saleDateText = ""
+                        selectedMessenger = "Todos"
+                        productQuery = ""
+                        qtySoldText = ""
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Limpiar filtros")
+                }
             }
 
             if (historyFiltrado.isEmpty()) {
-                Text("No hay ventas finalizadas con esos filtros.", style = MaterialTheme.typography.bodySmall)
+                Text("No hay ventas finalizadas.", style = MaterialTheme.typography.bodySmall)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -232,9 +216,7 @@ private fun MessengerDropdown(
             readOnly = true,
             label = { Text("Mensajero") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
+            modifier = Modifier.menuAnchor().fillMaxWidth()
         )
 
         ExposedDropdownMenu(
@@ -260,15 +242,16 @@ private fun RouteCardEnRuta(
     onOpenDetail: () -> Unit,
     onFinalize: (() -> Unit)?
 ) {
+    val zone = remember { ZoneId.of("America/Bogota") }
     val dateText = Instant.ofEpochMilli(sale.createdAtEpochMillis)
-        .atZone(ZoneId.systemDefault())
+        .atZone(zone)
         .toLocalDateTime()
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 
     Card(onClick = onOpenDetail) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Venta #${sale.id}", style = MaterialTheme.typography.titleMedium)
+                Text("Venta #${sale.id.takeLast(6)}", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.TwoWheeler, contentDescription = null)
                     Text("EN RUTA")
@@ -276,11 +259,10 @@ private fun RouteCardEnRuta(
             }
             Text("Mensajero: ${sale.messengerName ?: "—"}")
             Text("Fecha salida: $dateText", style = MaterialTheme.typography.bodySmall)
-            Text("Total vendido: — (pendiente)")
 
             if (onFinalize != null) {
                 Button(onClick = onFinalize, modifier = Modifier.fillMaxWidth()) {
-                    Text("Finalizar (vendido + devoluciones)")
+                    Text("Finalizar")
                 }
             }
         }
@@ -292,28 +274,27 @@ private fun HistoryCardFinalizada(
     card: SaleHistoryCard,
     onOpenDetail: () -> Unit
 ) {
+    val zone = remember { ZoneId.of("America/Bogota") }
     val soldDateText = Instant.ofEpochMilli(card.soldAtEpochMillis)
-        .atZone(ZoneId.systemDefault())
+        .atZone(zone)
         .toLocalDateTime()
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 
     Card(onClick = onOpenDetail) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Venta #${card.saleId}", style = MaterialTheme.typography.titleMedium)
+                Text("Venta #${card.saleId.takeLast(6)}", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null)
                     Text("FINALIZADA")
                 }
             }
-            Text("Producto: ${card.productName}")
+            Text("Producto: ${card.firstItemName}")
             Text("Cantidad vendida: ${card.soldQty}")
-            Text("Vendedor: ${card.sellerName}")
+            Text("Vendedor: ${card.sellerName ?: "—"}")
             Text("Cliente: ${card.customerName ?: "—"}")
-            Text("Celular: ${card.customerPhone1 ?: "—"}")
-            Text("Mensajero: ${card.messengerName ?: "—"}")
-            Text("Fecha de venta: $soldDateText", style = MaterialTheme.typography.bodySmall)
-            Text("Total vendido: ${Formatters.money(card.total)}")
+            Text("Fecha: $soldDateText", style = MaterialTheme.typography.bodySmall)
+            Text("Total: ${Formatters.money(card.total)}")
         }
     }
 }

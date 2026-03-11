@@ -2,20 +2,18 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.kotlin.kapt)
+    id("org.jetbrains.kotlin.kapt")
     id("com.google.gms.google-services")
-    //id("org.jetbrains.kotlin.kapt")
 }
 
 android {
     namespace = "com.example.lentespro"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.lentespro"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -57,10 +55,10 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.fragment.ktx)
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    
+    // ✅ DataStore para preferencias persistentes
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.transportation.consumer)
-
-
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -69,14 +67,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     
-    // Room
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-auth-ktx")

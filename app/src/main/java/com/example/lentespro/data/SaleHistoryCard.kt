@@ -1,19 +1,14 @@
 package com.example.lentespro.data
 
 data class SaleHistoryCard(
-    val saleId: Long,
+    val saleId: String,
     val soldAtEpochMillis: Long,
     val messengerName: String?,
     val total: Double,
-    val productName: String,
+    val firstItemName: String,
     val soldQty: Int,
     val customerName: String?,
     val customerPhone1: String?,
     val sellerUid: String?,
     val sellerName: String?
-
 )
-
-
-
-

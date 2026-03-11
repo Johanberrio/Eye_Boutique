@@ -24,7 +24,7 @@ fun InventoryScreen(
     isAdmin: Boolean,
     onBack: () -> Unit,
     onAddProduct: () -> Unit,
-    onEditProduct: (Long) -> Unit
+    onEditProduct: (String) -> Unit
 ) {
     val products by inventoryViewModel.products.collectAsState()
     var query by remember { mutableStateOf("") }

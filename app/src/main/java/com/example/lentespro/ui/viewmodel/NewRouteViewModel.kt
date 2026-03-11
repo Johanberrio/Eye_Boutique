@@ -3,15 +3,12 @@ package com.example.lentespro.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lentespro.data.CreateRouteItem
-import com.example.lentespro.data.ProductEntity
-import com.example.lentespro.data.ProductRepository
-import com.example.lentespro.data.SaleRepository
+import com.example.lentespro.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class RouteCartLine(
-    val productId: Long,
+    val productId: String,
     val name: String,
     val stock: Int,
     val unitPrice: Double,
@@ -24,7 +21,7 @@ data class NewRouteUiState(
     val messengerName: String = "",
     val notes: String = "",
 
-    // ✅ Cliente (NUEVO)
+    // ✅ Cliente
     val customerName: String = "",
     val customerPhone1: String = "",
     val customerPhone2: String = "",
@@ -40,7 +37,7 @@ data class NewRouteUiState(
 
 sealed class NewRouteEvent {
     data class Error(val message: String) : NewRouteEvent()
-    data class Success(val saleId: Long) : NewRouteEvent()
+    data class Success(val saleId: String) : NewRouteEvent()
 }
 
 class NewRouteViewModel(
@@ -55,19 +52,20 @@ class NewRouteViewModel(
     private val _events = MutableSharedFlow<NewRouteEvent>()
     val events = _events.asSharedFlow()
 
-    private val productsFlow: Flow<List<ProductEntity>> =
+    init {
+        // Observar búsqueda y productos en tiempo real
         searchQuery
             .debounce(200)
             .map { it.trim() }
             .distinctUntilChanged()
-            .flatMapLatest { q -> if (q.isBlank()) productRepo.observeAll() else productRepo.observeSearch(q) }
-
-    init {
-        viewModelScope.launch {
-            productsFlow.collect { list ->
-                _ui.update { it.copy(products = list) }
+            .flatMapLatest { q -> 
+                if (q.isBlank()) productRepo.observeAll() 
+                else productRepo.observeSearch(q) 
             }
-        }
+            .onEach { list -> 
+                _ui.update { it.copy(products = list) } 
+            }
+            .launchIn(viewModelScope)
     }
 
     fun setMessengerName(v: String) = _ui.update { it.copy(messengerName = v) }
@@ -77,7 +75,7 @@ class NewRouteViewModel(
         searchQuery.value = v
     }
 
-    // ✅ Cliente setters (NUEVO)
+    // Cliente setters
     fun setCustomerName(v: String) = _ui.update { it.copy(customerName = v) }
     fun setCustomerPhone1(v: String) = _ui.update { it.copy(customerPhone1 = v) }
     fun setCustomerPhone2(v: String) = _ui.update { it.copy(customerPhone2 = v) }
@@ -109,11 +107,11 @@ class NewRouteViewModel(
         }
     }
 
-    fun removeFromCart(productId: Long) {
+    fun removeFromCart(productId: String) {
         _ui.update { it.copy(cart = it.cart.filterNot { l -> l.productId == productId }) }
     }
 
-    fun setQty(productId: Long, qty: Int) {
+    fun setQty(productId: String, qty: Int) {
         _ui.update { state ->
             state.copy(
                 cart = state.cart.map { line ->
@@ -126,7 +124,7 @@ class NewRouteViewModel(
         }
     }
 
-    fun setUnitPrice(productId: Long, price: Double) {
+    fun setUnitPrice(productId: String, price: Double) {
         _ui.update { state ->
             state.copy(
                 cart = state.cart.map { line ->
@@ -145,24 +143,6 @@ class NewRouteViewModel(
                 return@launch
             }
 
-            // ✅ Validaciones Cliente (NUEVO)
-            /*if (state.customerName.trim().isBlank()) {
-                _events.emit(NewRouteEvent.Error("El nombre del cliente es obligatorio."))
-                return@launch
-            }
-            if (state.customerPhone1.trim().isBlank()) {
-                _events.emit(NewRouteEvent.Error("El celular 1 del cliente es obligatorio."))
-                return@launch
-            }
-            if (state.customerAddress.trim().isBlank()) {
-                _events.emit(NewRouteEvent.Error("La dirección del cliente es obligatoria."))
-                return@launch
-            }
-            if (state.customerNeighborhood.trim().isBlank()) {
-                _events.emit(NewRouteEvent.Error("El barrio del cliente es obligatorio."))
-                return@launch
-            }*/
-
             _ui.update { it.copy(isSaving = true) }
 
             try {
@@ -174,12 +154,10 @@ class NewRouteViewModel(
                     )
                 }
 
-                // ✅ Se envían datos del cliente al repositorio (NUEVO)
                 val saleId = saleRepo.createRouteDispatch(
                     messengerName = state.messengerName.trim(),
                     notes = state.notes.trim(),
                     items = items,
-
                     customerName = state.customerName.trim(),
                     customerPhone1 = state.customerPhone1.trim(),
                     customerPhone2 = state.customerPhone2.trim().ifBlank { null },
@@ -188,7 +166,7 @@ class NewRouteViewModel(
                 )
 
                 _events.emit(NewRouteEvent.Success(saleId))
-                _ui.value = NewRouteUiState() // resetea formulario completo
+                _ui.value = NewRouteUiState() 
             } catch (e: Exception) {
                 _events.emit(NewRouteEvent.Error(e.message ?: "Error creando salida a ruta"))
                 _ui.update { it.copy(isSaving = false) }

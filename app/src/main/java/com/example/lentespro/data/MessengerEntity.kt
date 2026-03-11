@@ -1,12 +1,14 @@
 package com.example.lentespro.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.DocumentId
 
-@Entity(tableName = "messengers")
+/**
+ * Entidad que representa un mensajero.
+ * Migrada a Firestore para sincronización multi-dispositivo.
+ */
 data class MessengerEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val name: String,
-    val phone: String,
+    @DocumentId val id: String = "",
+    val name: String = "",
+    val phone: String = "",
     val address: String? = null
 )

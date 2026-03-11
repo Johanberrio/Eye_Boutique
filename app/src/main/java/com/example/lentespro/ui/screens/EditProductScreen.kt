@@ -38,7 +38,7 @@ fun EditProductScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.id == 0L) "Nuevo producto" else "Editar producto") },
+                title = { Text(if (state.id.isBlank()) "Nuevo producto" else "Editar producto") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -103,30 +103,6 @@ fun EditProductScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
                 )
-                /*OutlinedTextField(
-                    value = state.cilindro,
-                    onValueChange = { v -> viewModel.update { it.copy(cilindro = v) } },
-                    label = { Text("Cilindro") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )*/
-            }
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                /*OutlinedTextField(
-                    value = state.eje,
-                    onValueChange = { v -> viewModel.update { it.copy(eje = v) } },
-                    label = { Text("Eje (0-180)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )*/
-                /*OutlinedTextField(
-                    value = state.curvaBase,
-                    onValueChange = { v -> viewModel.update { it.copy(curvaBase = v) } },
-                    label = { Text("Curva Base (BC)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )*/
             }
 
             OutlinedTextField(
@@ -143,26 +119,19 @@ fun EditProductScreen(
                     value = state.cantidad,
                     onValueChange = { v -> viewModel.update { it.copy(cantidad = v) } },
                     label = { Text("Cantidad") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
                OutlinedTextField(
                     value = state.stockMinimo,
                     onValueChange = { v -> viewModel.update { it.copy(stockMinimo = v) } },
                     label = { Text("Stock mínimo") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                /*OutlinedTextField(
-                    value = state.precioCompra,
-                    onValueChange = { v -> viewModel.update { it.copy(precioCompra = v) } },
-                    label = { Text("Precio compra") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )*/
                 OutlinedTextField(
                     value = state.precioVenta,
                     onValueChange = { v -> viewModel.update { it.copy(precioVenta = v) } },

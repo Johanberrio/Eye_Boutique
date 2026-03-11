@@ -102,7 +102,7 @@ cd Eye_Boutique
 ```
 
 ## 🏗️ Estructura del Proyecto
-```code
+```
 Eye_Boutique/
 ├── app/
 │ ├── src/

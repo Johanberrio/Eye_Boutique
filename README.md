@@ -1,1 +1,73 @@
-# Eye_Boutique
+# Eye_Boutique 👓
+
+**Versión 1.0**
+
+Una aplicación Android nativa desarrollada en Kotlin que proporciona una solución integral para la gestión de una boutique de lentes oftálmicos.
+
+## 📋 Descripción del Proyecto
+
+Eye_Boutique es la **primera versión** de una aplicación móvil diseñada para facilitar la administración y consulta de productos ópticos, integrando funcionalidades modernas de autenticación, almacenamiento de datos y experiencia de usuario mejorada.
+
+## ✨ Funcionalidades Implementadas
+
+### 🔐 Autenticación y Seguridad
+- **Autenticación Firebase**: Sistema de login seguro mediante Firebase Authentication
+- **Autenticación Biométrica**: Soporte para desbloqueo mediante huella dactilar o reconocimiento facial (API 24+)
+- **Almacenamiento Seguro**: DataStore para el almacenamiento persistente y seguro de preferencias del usuario
+
+### 💾 Gestión de Datos
+- **Firebase Firestore**: Base de datos en tiempo real para sincronización de información
+- **Firebase Functions**: Funciones en la nube para lógica de negocio serverless
+- **Persistencia Local**: DataStore para preferencias y datos locales
+
+### 🎨 Interfaz de Usuario
+- **Jetpack Compose**: Framework moderno para construir interfaces de usuario declarativas
+- **Material Design 3**: Implementación de las últimas directrices de diseño de Material
+- **Navegación Nativa**: Sistema de navegación entre pantallas optimizado
+- **Iconografía Extendida**: Material Icons Extended para iconos personalizados
+
+### 📱 Características Técnicas
+- **Kotlin**: Desarrollo 100% en Kotlin con corrutinas
+- **MVVM Architecture**: Arquitectura limpia basada en ViewModel y LiveData
+- **Jetpack Navigation**: Navegación segura entre fragmentos y actividades
+- **Java 11**: Compilación con Java 11 para mejor rendimiento
+- **Desugaring**: Soporte para java.time en dispositivos antiguos
+
+## 🛠️ Stack Tecnológico
+
+### Core Android
+- `androidx.core:core-ktx` - Extensiones de Kotlin para Android
+- `androidx.lifecycle:*` - ViewModel, LiveData y manejo del ciclo de vida
+- `androidx.fragment:fragment-ktx` - Gestión de fragmentos
+
+### Compose & UI
+- `androidx.compose:*` - Framework Compose para UI declarativa
+- `androidx.compose.material3` - Material Design 3 Components
+- `androidx.compose.material:material-icons-extended` - Iconografía extendida
+- `androidx.navigation:navigation-compose` - Navegación en Compose
+
+### Firebase
+- `com.google.firebase:firebase-auth-ktx` - Autenticación
+- `com.google.firebase:firebase-firestore-ktx` - Base de datos Firestore
+- `com.google.firebase:firebase-functions-ktx` - Cloud Functions
+- Firebase BOM 33.1.2
+
+### Seguridad & Almacenamiento
+- `androidx.biometric:biometric` - API de autenticación biométrica
+- `androidx.datastore:datastore-preferences` - Almacenamiento de preferencias
+
+### Testing
+- `junit` - Framework de pruebas unitarias
+- `androidx.test.espresso` - Framework de pruebas UI
+- `androidx.compose.ui:ui-test-junit4` - Pruebas de Compose
+
+## 📦 Configuración del Proyecto
+
+### Especificaciones
+- **Min SDK**: 24 (Android 7.0)
+- **Target SDK**: 35 (Android 15)
+- **Compile SDK**: 35
+- **Lenguaje**: Kotlin
+- **Build System**: Gradle 8.x
+
+### Namespace

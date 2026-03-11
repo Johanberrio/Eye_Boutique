@@ -1,5 +1,6 @@
 package com.example.lentespro.data
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -12,54 +13,65 @@ class ProductRepository(
 ) {
     private val collection = db.collection("products")
 
-    /**
-     * Observa todos los productos en tiempo real desde Firestore.
-     */
     fun observeAll(): Flow<List<ProductEntity>> = callbackFlow {
         val subscription = collection
             .orderBy("nombre", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    // Al cerrar sesión, Firestore lanza un error de permisos.
+                    // Cerramos el canal de forma segura para evitar el crash.
+                    close() 
                     return@addSnapshotListener
                 }
+                
                 val products = snapshot?.documents?.mapNotNull { doc ->
-                    // Use doc.id directly as it is already a String
-                    doc.toObject(ProductEntity::class.java)?.copy(id = doc.id)
+                    try {
+                        doc.toObject(ProductEntity::class.java)
+                    } catch (e: Exception) {
+                        Log.e("Firestore", "Error deserializando producto ${doc.id}: ${e.message}")
+                        null
+                    }
                 } ?: emptyList()
+                
                 trySend(products)
             }
         awaitClose { subscription.remove() }
     }
 
-    /**
-     * Búsqueda simple (en Firestore es mejor filtrar en local si la lista no es gigante,
-     * o usar servicios externos. Por ahora, filtramos todos).
-     */
     fun observeSearch(q: String): Flow<List<ProductEntity>> = callbackFlow {
-        val subscription = collection.addSnapshotListener { snapshot, _ ->
-            val products = snapshot?.documents?.mapNotNull { it.toObject(ProductEntity::class.java) }
-                ?.filter { 
-                    it.nombre.contains(q, true) || it.marca.contains(q, true) 
-                } ?: emptyList()
+        val subscription = collection.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close()
+                return@addSnapshotListener
+            }
+            val products = snapshot?.documents?.mapNotNull { doc ->
+                try {
+                    val p = doc.toObject(ProductEntity::class.java)
+                    if (p != null && (p.nombre.contains(q, true) || p.marca.contains(q, true))) p else null
+                } catch (e: Exception) { null }
+            } ?: emptyList()
             trySend(products)
         }
         awaitClose { subscription.remove() }
     }
 
     suspend fun getById(id: String): ProductEntity? {
-        val doc = collection.document(id).get().await()
-        return doc.toObject(ProductEntity::class.java)
+        return try {
+            val doc = collection.document(id).get().await()
+            doc.toObject(ProductEntity::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     suspend fun upsert(entity: ProductEntity) {
-        // Si el nombre se usa como ID o generamos uno nuevo
-        val id = if (entity.nombre.isNotBlank()) entity.nombre + "_" + entity.marca else db.collection("products").document().id
+        val id = if (entity.id.isNotBlank()) entity.id else collection.document().id
         collection.document(id).set(entity).await()
     }
 
     suspend fun delete(entity: ProductEntity) {
-        val id = entity.nombre + "_" + entity.marca
-        collection.document(id).delete().await()
+        if (entity.id.isNotBlank()) {
+            collection.document(entity.id).delete().await()
+        }
     }
 }

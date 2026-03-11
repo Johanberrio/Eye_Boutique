@@ -18,7 +18,8 @@ class SaleRepository(
             .orderBy("createdAtEpochMillis", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    // Cerrar flujo de forma segura al desloguear
+                    close()
                     return@addSnapshotListener
                 }
                 val sales = snapshot?.documents?.mapNotNull { it.toObject(SaleEntity::class.java) } ?: emptyList()
@@ -28,8 +29,12 @@ class SaleRepository(
     }
 
     suspend fun getSaleOnce(saleId: String): SaleEntity? {
-        val doc = salesCollection.document(saleId).get().await()
-        return doc.toObject(SaleEntity::class.java)
+        return try {
+            val doc = salesCollection.document(saleId).get().await()
+            doc.toObject(SaleEntity::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /**

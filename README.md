@@ -94,6 +94,11 @@ cd Eye_Boutique
 2. **Configurar Firebase**
 - Descargar `google-services.json` desde **Firebase Console**.  
 - Colocar el archivo en la carpeta `app/`.
+  
+3. **Compilar y ejecutar**
+```bash
+./gradlew build
+./gradlew installDebug
 
 🏗️ Estructura del Proyecto
 Configurar Firebase

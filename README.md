@@ -100,3 +100,19 @@ Compilar y ejecutar
 
 ./gradlew build
 ./gradlew installDebug
+
+Eye_Boutique/
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/example/lentespro/    # Código fuente Kotlin
+│   │   │   ├── res/                            # Recursos (layouts, strings, etc.)
+│   │   │   └── AndroidManifest.xml            # Configuración de la aplicación
+│   │   ├── androidTest/                        # Pruebas instrumentadas
+│   │   └── test/                               # Pruebas unitarias
+│   ├── build.gradle.kts                        # Configuración del módulo app
+│   └── google-services.json                    # Configuración de Firebase
+├── gradle/                                      # Scripts de Gradle
+├── build.gradle.kts                            # Build script raíz
+├── settings.gradle.kts                         # Configuración de proyectos
+└── gradle.properties                           # Propiedades globales de Gradle

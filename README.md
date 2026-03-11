@@ -71,3 +71,22 @@ Eye_Boutique es la **primera versión** de una aplicación móvil diseñada para
 - **Build System**: Gradle 8.x
 
 ### Namespace
+
+
+### Versión Actual
+- **Version Code**: 1
+- **Version Name**: 1.0
+
+## 🚀 Requisitos Previos
+
+- Android Studio Arctic Fox o superior
+- JDK 11 o superior
+- Conexión a Internet (para Firebase)
+- Dispositivo Android con API 24+
+
+## 📲 Instalación
+
+1. **Clonar el repositorio**
+```bash
+git clone https://github.com/Johanberrio/Eye_Boutique.git
+cd Eye_Boutique

@@ -90,3 +90,9 @@ Eye_Boutique es la **primera versión** de una aplicación móvil diseñada para
 ```bash
 git clone https://github.com/Johanberrio/Eye_Boutique.git
 cd Eye_Boutique
+
+Configurar Firebase
+
+Descargar google-services.json de Firebase Console
+Colocar el archivo en la carpeta app/
+Compilar y ejecutar

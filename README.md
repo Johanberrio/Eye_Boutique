@@ -140,22 +140,25 @@ Esta es la primera versión (**MVP**) de **Eye_Boutique** que incluye:
 - ✅ Navegación entre pantallas optimizada
 - ✅ Arquitectura MVVM implementada
 
-🤝 Contribuciones
-Las contribuciones son bienvenidas. Para cambios importantes:
+## 📄 Licencia
 
-Fork el proyecto
-Crea una rama para tu feature (git checkout -b feature/AmazingFeature)
-Commit tus cambios (git commit -m 'Add some AmazingFeature')
-Push a la rama (git push origin feature/AmazingFeature)
-Abre un Pull Request
-📄 Licencia
-Este proyecto está bajo licencia MIT. Consulta el archivo LICENSE para más detalles.
+Este proyecto está bajo licencia **MIT**.  
+Consulta el archivo `LICENSE` para más detalles.
 
-👨‍💻 Autor
-Johan Berrio
+---
+
+## 👨‍💻 Autor
+
+**Johan Berrio**
+
 GitHub: @Johanberrio
 
-📞 Soporte
-Para reportar problemas o sugerencias, abre un issue en el repositorio.
+---
 
-Última actualización: Marzo 2026
+## 📞 Soporte
+
+Para reportar problemas o sugerencias, abre un **issue** en el repositorio.
+
+---
+
+**Última actualización:** Marzo 2026

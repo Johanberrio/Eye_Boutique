@@ -99,7 +99,7 @@ cd Eye_Boutique
 ```bash
 ./gradlew build
 ./gradlew installDebug
-
+```
 🏗️ Estructura del Proyecto
 Configurar Firebase
 

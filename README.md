@@ -157,6 +157,4 @@ GitHub: @Johanberrio
 
 Para reportar problemas o sugerencias, abre un **issue** en el repositorio.
 
----
-
 **Última actualización:** Marzo 2026

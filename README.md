@@ -145,7 +145,6 @@ Esta es la primera versión (**MVP**) de **Eye_Boutique** que incluye:
 Este proyecto está bajo licencia **MIT**.  
 Consulta el archivo `LICENSE` para más detalles.
 
----
 
 ## 👨‍💻 Autor
 
@@ -153,7 +152,6 @@ Consulta el archivo `LICENSE` para más detalles.
 
 GitHub: @Johanberrio
 
----
 
 ## 📞 Soporte
 

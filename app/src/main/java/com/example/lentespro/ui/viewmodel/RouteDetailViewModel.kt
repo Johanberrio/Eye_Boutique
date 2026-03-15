@@ -19,7 +19,7 @@ data class RouteDetailLineUi(
 
 data class RouteDetailUiState(
     val saleId: String = "",
-    val saleNumber: Int = 0, // ✅ Nuevo: Número secuencial
+    val saleNumber: Int = 0,
     val status: SaleStatus = SaleStatus.EN_RUTA,
     val createdAt: Long = 0L,
     val messengerName: String = "",
@@ -52,8 +52,13 @@ class RouteDetailViewModel(
     init {
         viewModelScope.launch {
             try {
-                // Observamos todas las ventas para determinar la posición (número) de esta venta
-                val allSales = repo.observeSales().first().sortedBy { it.createdAtEpochMillis }
+                // ✅ Aplicamos EXACTAMENTE el mismo filtro que en la lista para que el número coincida
+                val allSales = repo.observeSales().first()
+                    .filter { sale ->
+                        sale.status == SaleStatus.EN_RUTA || (sale.status == SaleStatus.FINALIZADA && sale.total > 0)
+                    }
+                    .sortedBy { it.createdAtEpochMillis }
+
                 val index = allSales.indexOfFirst { it.id == saleId }
                 val saleNumber = if (index != -1) index + 1 else 0
 

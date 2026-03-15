@@ -51,17 +51,20 @@ class InventoryViewModel(
             .map { total -> total <= 50 }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    // ✅ NUEVO: Observar ventas para estadísticas
+    // ✅ Observar ventas para estadísticas
     private val allSales = saleRepo.observeSales()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // 🛵 Productos en ruta (Ventas con estado EN_RUTA)
-    val enRutaCount: StateFlow<Int> = allSales
-        .map { list -> list.count { it.status == SaleStatus.EN_RUTA } }
+    // 🛵 Cantidad total de PRODUCTOS en ruta (Suma de dispatchedQty de ventas EN_RUTA)
+    val enRutaProductCount: StateFlow<Int> = allSales
+        .map { list -> 
+            list.filter { it.status == SaleStatus.EN_RUTA }
+                .sumOf { sale -> sale.items.sumOf { it.dispatchedQty } }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    // 💰 Ventas diarias (Finalizadas hoy)
-    val ventasHoyCount: StateFlow<Int> = allSales
+    // 💰 Cantidad total de PRODUCTOS vendidos hoy (Suma de soldQty de ventas FINALIZADAS hoy)
+    val ventasHoyProductCount: StateFlow<Int> = allSales
         .map { list ->
             val todayStart = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
@@ -70,10 +73,10 @@ class InventoryViewModel(
                 set(Calendar.MILLISECOND, 0)
             }.timeInMillis
             
-            list.count { 
+            list.filter { 
                 it.status == SaleStatus.FINALIZADA && 
                 (it.finalizedAtEpochMillis ?: 0L) >= todayStart 
-            }
+            }.sumOf { sale -> sale.items.sumOf { it.soldQty ?: 0 } }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 }

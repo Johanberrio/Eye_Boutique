@@ -33,8 +33,10 @@ fun DashboardScreen(
     val products by inventoryViewModel.products.collectAsState()
     val totalLentes by inventoryViewModel.totalLentes.collectAsState()
     val alertaTotalBajo by inventoryViewModel.alertaTotalBajo.collectAsState()
-    val enRuta by inventoryViewModel.enRutaCount.collectAsState()
-    val ventasHoy by inventoryViewModel.ventasHoyCount.collectAsState()
+    
+    // ✅ Observamos las nuevas estadísticas de productos
+    val enRutaProductCount by inventoryViewModel.enRutaProductCount.collectAsState()
+    val ventasHoyProductCount by inventoryViewModel.ventasHoyProductCount.collectAsState()
 
     val isAlert = alertaTotalBajo
 
@@ -75,8 +77,9 @@ fun DashboardScreen(
                     Text("Lentes registrados: ${products.size}")
                     Text("Total lentes en inventario: $totalLentes")
                     
-                    Text("Pedidos en ruta 🛵: $enRuta")
-                    Text("Ventas finalizadas hoy 💰: $ventasHoy")
+                    // ✅ Actualizado: muestra cantidad de productos, no de rutas
+                    Text("Productos en ruta 🛵: $enRutaProductCount")
+                    Text("Lentes vendidos hoy 💰: $ventasHoyProductCount")
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(

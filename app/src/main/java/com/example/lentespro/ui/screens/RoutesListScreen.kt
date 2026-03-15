@@ -36,6 +36,9 @@ fun RoutesListScreen(
 ) {
     val enRuta by viewModel.enRuta.collectAsState()
     val historyCards by viewModel.historyCards.collectAsState()
+    
+    // ✅ Ahora observamos los mensajeros reales desde el ViewModel
+    val messengerOptions by viewModel.messengerOptions.collectAsState()
 
     var saleDateText by rememberSaveable { mutableStateOf("") }
     var selectedMessenger by rememberSaveable { mutableStateOf("Todos") }
@@ -54,7 +57,6 @@ fun RoutesListScreen(
     }
 
     val qtySold: Int? = remember(qtySoldText) { qtySoldText.trim().toIntOrNull() }
-    val messengerOptions = remember { listOf("Todos", "Jaime", "Adomibello") }
 
     val historyFiltrado = remember(
         historyCards,
@@ -118,9 +120,10 @@ fun RoutesListScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(enRuta, key = { it.id }) { sale ->
+                    items(enRuta, key = { it.second.id }) { (saleNumber, sale) ->
                         RouteCardEnRuta(
                             sale = sale,
+                            saleNumber = saleNumber,
                             onOpenDetail = { onOpenDetail(sale.id) },
                             onFinalize = { onFinalizeRoute(sale.id) }
                         )
@@ -239,6 +242,7 @@ private fun MessengerDropdown(
 @Composable
 private fun RouteCardEnRuta(
     sale: SaleEntity,
+    saleNumber: Int,
     onOpenDetail: () -> Unit,
     onFinalize: (() -> Unit)?
 ) {
@@ -251,7 +255,7 @@ private fun RouteCardEnRuta(
     Card(onClick = onOpenDetail) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Venta #${sale.id.takeLast(6)}", style = MaterialTheme.typography.titleMedium)
+                Text("Venta #$saleNumber", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.TwoWheeler, contentDescription = null)
                     Text("EN RUTA")
@@ -283,7 +287,7 @@ private fun HistoryCardFinalizada(
     Card(onClick = onOpenDetail) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Venta #${card.saleId.takeLast(6)}", style = MaterialTheme.typography.titleMedium)
+                Text("Venta #${card.saleNumber}", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null)
                     Text("FINALIZADA")

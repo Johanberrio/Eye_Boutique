@@ -158,7 +158,10 @@ fun AppNavGraph(
                 return@composable
             }
             val vm: RoutesListViewModel = viewModel(
-                factory = RoutesListViewModelFactory(container.saleRepository)
+                factory = RoutesListViewModelFactory(
+                    repo = container.saleRepository,
+                    messengerRepo = container.messengerRepository // ✅ PASADO EL REPOSITORIO FALTANTE
+                )
             )
             RoutesListScreen(
                 viewModel = vm,

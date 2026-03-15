@@ -44,7 +44,7 @@ fun FinalizeRouteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Finalizar ruta") },
+                title = { Text("Finalizar ruta #${state.saleNumber}") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -75,16 +75,14 @@ fun FinalizeRouteScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // ✅ RESUMEN + VENDEDOR
             Card {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Salida #${state.saleId}", style = MaterialTheme.typography.titleMedium)
+                    Text("Venta #${state.saleNumber}", style = MaterialTheme.typography.titleMedium)
                     Text("Mensajero: ${state.messengerName.ifBlank { "—" }}")
                     if (state.notes.isNotBlank()) Text("Notas: ${state.notes}")
 
                     Divider()
 
-                    // ✅ ADMIN puede escoger vendedor desde dropdown
                     if (state.isAdmin) {
                         SellerDropdown(
                             options = state.sellerOptions,
@@ -92,13 +90,12 @@ fun FinalizeRouteScreen(
                             onSelected = { opt -> viewModel.selectSeller(opt.uid, opt.displayName) }
                         )
                     } else {
-                        // SELLER: solo mostrar quién es
                         Text("Vendedor: ${state.selectedSellerName.ifBlank { "—" }}")
                     }
                 }
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 OutlinedButton(
                     onClick = {
                         state.lines.forEach { line ->

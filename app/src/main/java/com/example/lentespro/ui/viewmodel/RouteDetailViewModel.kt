@@ -4,11 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.lentespro.data.*
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class RouteDetailLineUi(
@@ -23,6 +19,7 @@ data class RouteDetailLineUi(
 
 data class RouteDetailUiState(
     val saleId: String = "",
+    val saleNumber: Int = 0, // ✅ Nuevo: Número secuencial
     val status: SaleStatus = SaleStatus.EN_RUTA,
     val createdAt: Long = 0L,
     val messengerName: String = "",
@@ -55,7 +52,12 @@ class RouteDetailViewModel(
     init {
         viewModelScope.launch {
             try {
-                val sale = repo.getSaleOnce(saleId)
+                // Observamos todas las ventas para determinar la posición (número) de esta venta
+                val allSales = repo.observeSales().first().sortedBy { it.createdAtEpochMillis }
+                val index = allSales.indexOfFirst { it.id == saleId }
+                val saleNumber = if (index != -1) index + 1 else 0
+
+                val sale = allSales.find { it.id == saleId }
                 if (sale == null) {
                     _ui.update { it.copy(isLoading = false) }
                     _events.emit(RouteDetailEvent.Error("No se encontró la ruta (id=$saleId)."))
@@ -76,6 +78,7 @@ class RouteDetailViewModel(
 
                 _ui.value = RouteDetailUiState(
                     saleId = sale.id,
+                    saleNumber = saleNumber,
                     status = sale.status,
                     createdAt = sale.createdAtEpochMillis,
                     messengerName = sale.messengerName ?: "—",

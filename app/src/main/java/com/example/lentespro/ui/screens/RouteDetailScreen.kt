@@ -40,7 +40,8 @@ fun RouteDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Historial - Ruta #${state.saleId}") },
+                // ✅ Ahora muestra el número secuencial calculado en el ViewModel
+                title = { Text("Historial - Ruta #${state.saleNumber}") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -65,7 +66,7 @@ fun RouteDetailScreen(
 
         val dateText = if (state.createdAt == 0L) "—" else {
             Instant.ofEpochMilli(state.createdAt)
-                .atZone(ZoneId.systemDefault())
+                .atZone(ZoneId.systemDefault()) // ✅ Consistente con GMT-5
                 .toLocalDateTime()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
         }
@@ -115,5 +116,3 @@ fun RouteDetailScreen(
         }
     }
 }
-
-

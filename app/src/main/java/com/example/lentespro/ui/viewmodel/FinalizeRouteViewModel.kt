@@ -20,6 +20,7 @@ data class FinalizeLine(
 
 data class FinalizeUiState(
     val saleId: String = "",
+    val saleNumber: Int = 0, // ✅ Nuevo: Número secuencial
     val messengerName: String = "",
     val notes: String = "",
     val lines: List<FinalizeLine> = emptyList(),
@@ -54,38 +55,41 @@ class FinalizeRouteViewModel(
     init {
         viewModelScope.launch {
             try {
-                // (A) Cargar venta desde Firestore
-                val sale = repo.getSaleOnce(saleId)
+                // (A) Determinar el número secuencial observando todas las ventas
+                val allSales = repo.observeSales().first().sortedBy { it.createdAtEpochMillis }
+                val index = allSales.indexOfFirst { it.id == saleId }
+                val saleNumber = if (index != -1) index + 1 else 0
+
+                // (B) Cargar venta desde Firestore
+                val sale = allSales.find { it.id == saleId }
                 if (sale == null) {
                     _ui.update { it.copy(isLoading = false) }
                     _events.emit(FinalizeEvent.Error("Salida no encontrada (id=$saleId)."))
                     return@launch
                 }
                 
-                // (B) Cargar perfil del usuario actual
+                // (C) Cargar perfil del usuario actual
                 val me = authProfileRepo.getUserProfile()
 
                 _ui.update { st ->
                     sale.toUi().copy(
+                        saleNumber = saleNumber,
                         isAdmin = (me.role == UserRole.ADMIN),
                         selectedSellerUid = me.uid,
                         selectedSellerName = me.displayName
                     )
                 }
 
-                // (C) Si es ADMIN, cargar lista de vendedores para el dropdown
+                // (D) Si es ADMIN, cargar lista de vendedores
                 if (me.role == UserRole.ADMIN) {
                     val sellers = usersRemoteRepo.getSellers()
-
                     val withMe = if (sellers.any { it.uid == me.uid }) {
                         sellers
                     } else {
                         sellers + SellerOption(uid = me.uid, displayName = me.displayName)
                     }.sortedBy { it.displayName.lowercase() }
 
-                    _ui.update { st ->
-                        st.copy(sellerOptions = withMe)
-                    }
+                    _ui.update { st -> st.copy(sellerOptions = withMe) }
                 }
 
             } catch (e: Exception) {

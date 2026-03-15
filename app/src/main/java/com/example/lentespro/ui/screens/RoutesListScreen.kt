@@ -36,8 +36,6 @@ fun RoutesListScreen(
 ) {
     val enRuta by viewModel.enRuta.collectAsState()
     val historyCards by viewModel.historyCards.collectAsState()
-    
-    // ✅ Ahora observamos los mensajeros reales desde el ViewModel
     val messengerOptions by viewModel.messengerOptions.collectAsState()
 
     var saleDateText by rememberSaveable { mutableStateOf("") }
@@ -104,95 +102,99 @@ fun RoutesListScreen(
             }
         }
     ) { padding ->
-        Column(
+        // ✅ Usamos una sola LazyColumn para que todo el contenido sea scrolleable y no se oculte nada
+        LazyColumn(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("EN RUTA", style = MaterialTheme.typography.titleMedium)
+            // -------------------- SECCIÓN EN RUTA --------------------
+            item {
+                Text("EN RUTA", style = MaterialTheme.typography.titleMedium)
+            }
 
             if (enRuta.isEmpty()) {
-                Text("No hay rutas en curso.", style = MaterialTheme.typography.bodySmall)
+                item {
+                    Text("No hay rutas en curso.", style = MaterialTheme.typography.bodySmall)
+                }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(enRuta, key = { it.second.id }) { (saleNumber, sale) ->
-                        RouteCardEnRuta(
-                            sale = sale,
-                            saleNumber = saleNumber,
-                            onOpenDetail = { onOpenDetail(sale.id) },
-                            onFinalize = { onFinalizeRoute(sale.id) }
-                        )
-                    }
+                items(enRuta, key = { it.second.id }) { (saleNumber, sale) ->
+                    RouteCardEnRuta(
+                        sale = sale,
+                        saleNumber = saleNumber,
+                        onOpenDetail = { onOpenDetail(sale.id) },
+                        onFinalize = { onFinalizeRoute(sale.id) }
+                    )
                 }
             }
 
-            Divider()
+            item { Divider(Modifier.padding(vertical = 8.dp)) }
 
-            Text("FINALIZADAS (historial)", style = MaterialTheme.typography.titleMedium)
+            // -------------------- SECCIÓN HISTORIAL --------------------
+            item {
+                Text("FINALIZADAS (historial)", style = MaterialTheme.typography.titleMedium)
+            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = saleDateText,
-                    onValueChange = { saleDateText = it },
-                    label = { Text("Fecha (AAAA-MM-dd)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+            // Filtros del historial
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = saleDateText,
+                        onValueChange = { saleDateText = it },
+                        label = { Text("Fecha (AAAA-MM-dd)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                MessengerDropdown(
-                    options = messengerOptions,
-                    selected = selectedMessenger,
-                    onSelected = { selectedMessenger = it }
-                )
+                    MessengerDropdown(
+                        options = messengerOptions,
+                        selected = selectedMessenger,
+                        onSelected = { selectedMessenger = it }
+                    )
 
-                OutlinedTextField(
-                    value = productQuery,
-                    onValueChange = { productQuery = it },
-                    label = { Text("Producto") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    OutlinedTextField(
+                        value = productQuery,
+                        onValueChange = { productQuery = it },
+                        label = { Text("Producto") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                OutlinedTextField(
-                    value = qtySoldText,
-                    onValueChange = { qtySoldText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Cantidad vendida") },
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    OutlinedTextField(
+                        value = qtySoldText,
+                        onValueChange = { qtySoldText = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Cantidad vendida") },
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                OutlinedButton(
-                    onClick = {
-                        saleDateText = ""
-                        selectedMessenger = "Todos"
-                        productQuery = ""
-                        qtySoldText = ""
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Limpiar filtros")
+                    OutlinedButton(
+                        onClick = {
+                            saleDateText = ""
+                            selectedMessenger = "Todos"
+                            productQuery = ""
+                            qtySoldText = ""
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Limpiar filtros")
+                    }
                 }
             }
 
             if (historyFiltrado.isEmpty()) {
-                Text("No hay ventas finalizadas.", style = MaterialTheme.typography.bodySmall)
+                item {
+                    Text("No hay ventas finalizadas.", style = MaterialTheme.typography.bodySmall)
+                }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(historyFiltrado, key = { it.saleId }) { card ->
-                        HistoryCardFinalizada(
-                            card = card,
-                            onOpenDetail = { onOpenDetail(card.saleId) }
-                        )
-                    }
+                items(historyFiltrado, key = { it.saleId }) { card ->
+                    HistoryCardFinalizada(
+                        card = card,
+                        onOpenDetail = { onOpenDetail(card.saleId) }
+                    )
                 }
             }
         }

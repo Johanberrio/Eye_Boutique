@@ -32,7 +32,10 @@ data class NewRouteUiState(
     val products: List<ProductEntity> = emptyList(),
     val cart: List<RouteCartLine> = emptyList(),
     val isSaving: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    
+    // ✅ Nuevo: Lista de mensajeros para el dropdown
+    val messengerOptions: List<String> = emptyList()
 )
 
 sealed class NewRouteEvent {
@@ -42,7 +45,8 @@ sealed class NewRouteEvent {
 
 class NewRouteViewModel(
     private val productRepo: ProductRepository,
-    private val saleRepo: SaleRepository
+    private val saleRepo: SaleRepository,
+    private val messengerRepo: MessengerRepository // ✅ Añadido repositorio de mensajeros
 ) : ViewModel() {
 
     private val searchQuery = MutableStateFlow("")
@@ -64,6 +68,14 @@ class NewRouteViewModel(
             }
             .onEach { list -> 
                 _ui.update { it.copy(products = list) } 
+            }
+            .launchIn(viewModelScope)
+
+        // ✅ Observar mensajeros reales desde Firestore
+        messengerRepo.observeAll()
+            .onEach { list ->
+                val names = list.map { it.name }.sorted()
+                _ui.update { it.copy(messengerOptions = names) }
             }
             .launchIn(viewModelScope)
     }
@@ -166,7 +178,7 @@ class NewRouteViewModel(
                 )
 
                 _events.emit(NewRouteEvent.Success(saleId))
-                _ui.value = NewRouteUiState() 
+                _ui.value = NewRouteUiState(messengerOptions = state.messengerOptions) // resetea pero mantiene opciones
             } catch (e: Exception) {
                 _events.emit(NewRouteEvent.Error(e.message ?: "Error creando salida a ruta"))
                 _ui.update { it.copy(isSaving = false) }
@@ -177,9 +189,10 @@ class NewRouteViewModel(
 
 class NewRouteViewModelFactory(
     private val productRepo: ProductRepository,
-    private val saleRepo: SaleRepository
+    private val saleRepo: SaleRepository,
+    private val messengerRepo: MessengerRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        NewRouteViewModel(productRepo, saleRepo) as T
+        NewRouteViewModel(productRepo, saleRepo, messengerRepo) as T
 }

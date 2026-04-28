@@ -79,9 +79,10 @@ class EditProductViewModel(
         viewModelScope.launch {
             val state = _uiState.value
 
-            val nombre = state.nombre.trim()
-            val marca = state.marca.trim()
-            val color = state.color.trim()
+            // ✅ Normalizamos nombre y marca antes de guardar (quita tildes y pasa a mayúsculas)
+            val nombre = Formatters.normalize(state.nombre)
+            val marca = Formatters.normalize(state.marca)
+            val color = Formatters.normalize(state.color)
             val tipo = state.tipo.trim().ifBlank { "Mensual" }
 
             if (nombre.isBlank()) {

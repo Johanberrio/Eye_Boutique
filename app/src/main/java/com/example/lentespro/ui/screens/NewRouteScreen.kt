@@ -18,9 +18,6 @@ import com.example.lentespro.ui.viewmodel.NewRouteViewModel
 import com.example.lentespro.util.Formatters
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.lazy.LazyListState
-import kotlinx.coroutines.launch
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -31,14 +28,13 @@ fun NewRouteScreen(
     val state by viewModel.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
             when (ev) {
                 is NewRouteEvent.Error -> snackbar.showSnackbar(ev.message)
                 is NewRouteEvent.Success -> {
-                    snackbar.showSnackbar("Salida a ruta creada ✅ (id=${ev.saleId})")
+                    snackbar.showSnackbar("Salida a ruta creada ✅")
                     onBack()
                 }
             }
@@ -128,12 +124,11 @@ fun NewRouteScreen(
             stickyHeader { SectionHeaderSticky("Ruta") }
 
             item {
-                OutlinedTextField(
-                    value = state.messengerName,
-                    onValueChange = viewModel::setMessengerName,
-                    label = { Text("Mensajero (opcional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                // ✅ Dropdown de Mensajeros
+                MessengerSelector(
+                    options = state.messengerOptions,
+                    selected = state.messengerName,
+                    onSelected = viewModel::setMessengerName
                 )
             }
 
@@ -259,6 +254,53 @@ fun NewRouteScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(if (state.isSaving) "Enviando..." else "Marcar como salió a ruta")
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MessengerSelector(
+    options: List<String>,
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selected,
+            onValueChange = { onSelected(it) }, // Permite escribir también si se desea
+            label = { Text("Mensajero (opcional)") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            singleLine = true
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = {
+                        onSelected(name)
+                        expanded = false
+                    }
+                )
+            }
+            if (options.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No hay mensajeros creados") },
+                    onClick = { expanded = false },
+                    enabled = false
+                )
             }
         }
     }

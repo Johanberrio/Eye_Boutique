@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.lentespro"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.5"
+        versionCode = 3
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -32,6 +32,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -39,6 +40,7 @@ android {
     buildFeatures {
         compose = true
     }
+
 }
 
 dependencies {
@@ -55,6 +57,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.fragment.ktx)
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     
     // ✅ DataStore para preferencias persistentes
     implementation(libs.androidx.datastore.preferences)

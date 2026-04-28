@@ -116,6 +116,7 @@ fun AppNavGraph(
                 }
             )
         ) { backStackEntry ->
+            // ✅ SOLO ADMIN PUEDE ENTRAR A EDITAR O CREAR PRODUCTOS
             if (!isAdmin) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
@@ -136,6 +137,7 @@ fun AppNavGraph(
         }
 
         composable(Routes.NewRoute.route) {
+            // ✅ SOLO ADMIN PUEDE CREAR RUTAS
             if (!isAdmin) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
@@ -143,7 +145,8 @@ fun AppNavGraph(
             val vm: NewRouteViewModel = viewModel(
                 factory = NewRouteViewModelFactory(
                     productRepo = container.productRepository,
-                    saleRepo = container.saleRepository
+                    saleRepo = container.saleRepository,
+                    messengerRepo = container.messengerRepository
                 )
             )
             NewRouteScreen(
@@ -153,18 +156,16 @@ fun AppNavGraph(
         }
 
         composable(Routes.RoutesList.route) {
-            if (!isAdmin) {
-                LaunchedEffect(Unit) { navController.popBackStack() }
-                return@composable
-            }
+            // ✅ TODOS LOS USUARIOS PUEDEN VER LA LISTA (SOLO LECTURA)
             val vm: RoutesListViewModel = viewModel(
                 factory = RoutesListViewModelFactory(
                     repo = container.saleRepository,
-                    messengerRepo = container.messengerRepository // ✅ PASADO EL REPOSITORIO FALTANTE
+                    messengerRepo = container.messengerRepository
                 )
             )
             RoutesListScreen(
                 viewModel = vm,
+                isAdmin = isAdmin, // ✅ Pasamos el rol para ocultar botones de edición en la pantalla
                 onBack = { navController.popBackStack() },
                 onNewRoute = { navController.navigate(Routes.NewRoute.route) },
                 onFinalizeRoute = { saleId -> navController.navigate(Routes.FinalizeRoute.create(saleId)) },
@@ -181,10 +182,7 @@ fun AppNavGraph(
                 }
             )
         ) { backStackEntry ->
-            if (!isAdmin) {
-                LaunchedEffect(Unit) { navController.popBackStack() }
-                return@composable
-            }
+            // ✅ TODOS PUEDEN ENTRAR, PERO EN LA PANTALLA SE BLOQUEARÁN LOS BOTONES DE ACCIÓN
             val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
             val vm: FinalizeRouteViewModel = viewModel(
                 factory = FinalizeRouteViewModelFactory(
@@ -209,10 +207,7 @@ fun AppNavGraph(
                 }
             )
         ) { backStackEntry ->
-            if (!isAdmin) {
-                LaunchedEffect(Unit) { navController.popBackStack() }
-                return@composable
-            }
+            // ✅ EL DETALLE ES SOLO LECTURA, TODOS PUEDEN VERLO
             val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
             val vm: RouteDetailViewModel = viewModel(
                 factory = RouteDetailViewModelFactory(

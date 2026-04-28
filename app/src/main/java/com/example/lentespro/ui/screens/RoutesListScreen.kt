@@ -23,12 +23,15 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat // Añadido
+import java.util.Date             // Añadido
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutesListScreen(
     viewModel: RoutesListViewModel,
+    isAdmin: Boolean, // ✅ Añadido rol
     onBack: () -> Unit,
     onNewRoute: () -> Unit,
     onFinalizeRoute: (String) -> Unit,
@@ -97,12 +100,14 @@ fun RoutesListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNewRoute) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva salida a ruta")
+            // ✅ Solo el administrador puede crear nuevas rutas
+            if (isAdmin) {
+                FloatingActionButton(onClick = onNewRoute) {
+                    Icon(Icons.Default.Add, contentDescription = "Nueva salida a ruta")
+                }
             }
         }
     ) { padding ->
-        // ✅ Usamos una sola LazyColumn para que todo el contenido sea scrolleable y no se oculte nada
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
@@ -110,7 +115,6 @@ fun RoutesListScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // -------------------- SECCIÓN EN RUTA --------------------
             item {
                 Text("EN RUTA", style = MaterialTheme.typography.titleMedium)
             }
@@ -124,6 +128,7 @@ fun RoutesListScreen(
                     RouteCardEnRuta(
                         sale = sale,
                         saleNumber = saleNumber,
+                        isAdmin = isAdmin, // ✅ Pasamos permiso
                         onOpenDetail = { onOpenDetail(sale.id) },
                         onFinalize = { onFinalizeRoute(sale.id) }
                     )
@@ -132,12 +137,10 @@ fun RoutesListScreen(
 
             item { Divider(Modifier.padding(vertical = 8.dp)) }
 
-            // -------------------- SECCIÓN HISTORIAL --------------------
             item {
                 Text("FINALIZADAS (historial)", style = MaterialTheme.typography.titleMedium)
             }
 
-            // Filtros del historial
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -245,6 +248,7 @@ private fun MessengerDropdown(
 private fun RouteCardEnRuta(
     sale: SaleEntity,
     saleNumber: Int,
+    isAdmin: Boolean, // ✅ Añadido
     onOpenDetail: () -> Unit,
     onFinalize: (() -> Unit)?
 ) {
@@ -264,9 +268,12 @@ private fun RouteCardEnRuta(
                 }
             }
             Text("Mensajero: ${sale.messengerName ?: "—"}")
+            Text("Barrio: ${sale.customerNeighborhood.ifBlank { "—" }}", style = MaterialTheme.typography.bodyMedium)
+
             Text("Fecha salida: $dateText", style = MaterialTheme.typography.bodySmall)
 
-            if (onFinalize != null) {
+            // ✅ Solo el administrador puede finalizar la ruta
+            if (isAdmin && onFinalize != null) {
                 Button(onClick = onFinalize, modifier = Modifier.fillMaxWidth()) {
                     Text("Finalizar")
                 }
@@ -299,6 +306,7 @@ private fun HistoryCardFinalizada(
             Text("Cantidad vendida: ${card.soldQty}")
             Text("Vendedor: ${card.sellerName ?: "—"}")
             Text("Cliente: ${card.customerName ?: "—"}")
+            Text("Mensajero: ${card.messengerName ?: "—"}")
             Text("Fecha: $soldDateText", style = MaterialTheme.typography.bodySmall)
             Text("Total: ${Formatters.money(card.total)}")
         }

@@ -66,7 +66,7 @@ class InventoryViewModel(
     // 💰 Cantidad total de PRODUCTOS vendidos hoy (Suma de soldQty de ventas FINALIZADAS hoy)
     val ventasHoyProductCount: StateFlow<Int> = allSales
         .map { list ->
-            val todayStart = Calendar.getInstance().apply {
+            val todayStart = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota")).apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
@@ -77,6 +77,41 @@ class InventoryViewModel(
                 it.status == SaleStatus.FINALIZADA && 
                 (it.finalizedAtEpochMillis ?: 0L) >= todayStart 
             }.sumOf { sale -> sale.items.sumOf { it.soldQty ?: 0 } }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    // 🗓️ Lógica de periodos de 30 días desde el 14 de Abril de 2026
+    val ventasPeriodoActualCount: StateFlow<Int> = allSales
+        .map { list ->
+            val zone = TimeZone.getTimeZone("America/Bogota")
+            // Fecha base: 14 de Abril de 2026
+            val baseDate = Calendar.getInstance(zone).apply {
+                set(2026, Calendar.APRIL, 14, 0, 0, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            
+            val now = System.currentTimeMillis()
+            if (now < baseDate) return@map 0 
+
+            val msPerDay = 24L * 60 * 60 * 1000
+            val msPerPeriod = 30 * msPerDay
+            
+            val diff = now - baseDate
+            val periodsCount = diff / msPerPeriod
+            val currentPeriodStart = baseDate + (periodsCount * msPerPeriod)
+            
+            list.filter { 
+                it.status == SaleStatus.FINALIZADA && 
+                (it.finalizedAtEpochMillis ?: 0L) >= currentPeriodStart 
+            }.sumOf { sale -> sale.items.sumOf { it.soldQty ?: 0 } }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    // ✅ NUEVO: Total histórico de lentes vendidos en toda la base de datos
+    val totalHistoricoVendido: StateFlow<Int> = allSales
+        .map { list -> 
+            list.filter { it.status == SaleStatus.FINALIZADA }
+                .sumOf { sale -> sale.items.sumOf { it.soldQty ?: 0 } }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 }

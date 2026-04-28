@@ -2,7 +2,7 @@ package com.example.lentespro.data
 
 data class SaleHistoryCard(
     val saleId: String,
-    val saleNumber: Int, // ✅ Nuevo: Número secuencial
+    val saleNumber: Int,
     val soldAtEpochMillis: Long,
     val messengerName: String?,
     val total: Double,
@@ -10,6 +10,7 @@ data class SaleHistoryCard(
     val soldQty: Int,
     val customerName: String?,
     val customerPhone1: String?,
+    val customerNeighborhood: String?, // ✅ Añadido barrio para el historial
     val sellerUid: String?,
     val sellerName: String?
 )

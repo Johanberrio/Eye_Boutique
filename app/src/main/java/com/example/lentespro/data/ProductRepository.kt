@@ -1,6 +1,7 @@
 package com.example.lentespro.data
 
 import android.util.Log
+import com.example.lentespro.util.Formatters
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -18,8 +19,6 @@ class ProductRepository(
             .orderBy("nombre", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    // Al cerrar sesión, Firestore lanza un error de permisos.
-                    // Cerramos el canal de forma segura para evitar el crash.
                     close() 
                     return@addSnapshotListener
                 }
@@ -38,18 +37,36 @@ class ProductRepository(
         awaitClose { subscription.remove() }
     }
 
+    /**
+     * Búsqueda optimizada que ignora tildes y mayúsculas/minúsculas.
+     * Normaliza tanto la consulta como los datos almacenados para la comparación.
+     */
     fun observeSearch(q: String): Flow<List<ProductEntity>> = callbackFlow {
+        val normalizedQuery = Formatters.normalize(q)
+        
         val subscription = collection.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 close()
                 return@addSnapshotListener
             }
+            
             val products = snapshot?.documents?.mapNotNull { doc ->
                 try {
-                    val p = doc.toObject(ProductEntity::class.java)
-                    if (p != null && (p.nombre.contains(q, true) || p.marca.contains(q, true))) p else null
-                } catch (e: Exception) { null }
+                    val p = doc.toObject(ProductEntity::class.java) ?: return@mapNotNull null
+                    
+                    val normalizedNombre = Formatters.normalize(p.nombre)
+                    val normalizedMarca = Formatters.normalize(p.marca)
+                    
+                    if (normalizedNombre.contains(normalizedQuery) || normalizedMarca.contains(normalizedQuery)) {
+                        p
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) { 
+                    null 
+                }
             } ?: emptyList()
+            
             trySend(products)
         }
         awaitClose { subscription.remove() }

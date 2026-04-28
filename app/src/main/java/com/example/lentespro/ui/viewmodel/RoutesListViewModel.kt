@@ -50,6 +50,7 @@ class RoutesListViewModel(
                         soldQty = sale.items.sumOf { it.soldQty ?: 0 },
                         customerName = sale.customerName,
                         customerPhone1 = sale.customerPhone1,
+                        customerNeighborhood = sale.customerNeighborhood, // ✅ PASADO EL PARÁMETRO FALTANTE
                         sellerUid = sale.sellerUid,
                         sellerName = sale.sellerName
                     )

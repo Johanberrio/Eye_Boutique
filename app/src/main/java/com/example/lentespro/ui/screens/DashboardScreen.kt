@@ -34,9 +34,11 @@ fun DashboardScreen(
     val totalLentes by inventoryViewModel.totalLentes.collectAsState()
     val alertaTotalBajo by inventoryViewModel.alertaTotalBajo.collectAsState()
     
-    // ✅ Observamos las nuevas estadísticas de productos
     val enRutaProductCount by inventoryViewModel.enRutaProductCount.collectAsState()
     val ventasHoyProductCount by inventoryViewModel.ventasHoyProductCount.collectAsState()
+    
+    val ventasPeriodoActualCount by inventoryViewModel.ventasPeriodoActualCount.collectAsState()
+    val totalHistoricoVendido by inventoryViewModel.totalHistoricoVendido.collectAsState()
 
     val isAlert = alertaTotalBajo
 
@@ -77,16 +79,18 @@ fun DashboardScreen(
                     Text("Lentes registrados: ${products.size}")
                     Text("Total lentes en inventario: $totalLentes")
                     
-                    // ✅ Actualizado: muestra cantidad de productos, no de rutas
                     Text("Productos en ruta 🛵: $enRutaProductCount")
                     Text("Lentes vendidos hoy 💰: $ventasHoyProductCount")
+                    
+                    Text("Lentes vendidos (mes actual) 🗓️: $ventasPeriodoActualCount")
+                    Text("Total histórico vendido 🏆: $totalHistoricoVendido")
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = if (isAlert) MaterialTheme.colorScheme.error
-                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
@@ -106,16 +110,17 @@ fun DashboardScreen(
                 Text("Ir a Inventario")
             }
 
-            if (isAdmin) {
-                Button(
-                    onClick = onGoToRoutes,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Route, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Rutas (salidas y entregas)")
-                }
+            // ✅ Movido fuera del bloque 'if (isAdmin)' para que todos lo vean
+            Button(
+                onClick = onGoToRoutes,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Route, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Rutas (salidas y entregas)")
+            }
 
+            if (isAdmin) {
                 Button(
                     onClick = onGoToMessengers,
                     modifier = Modifier.fillMaxWidth()

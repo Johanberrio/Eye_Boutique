@@ -22,6 +22,7 @@ import com.example.lentespro.util.Formatters
 fun InventoryScreen(
     inventoryViewModel: InventoryViewModel,
     isAdmin: Boolean,
+    isSuperAdmin: Boolean, // ✅ Añadido para controlar borrados
     onBack: () -> Unit,
     onAddProduct: () -> Unit,
     onEditProduct: (String) -> Unit
@@ -74,6 +75,7 @@ fun InventoryScreen(
                     ProductCard(
                         product = product,
                         isAdmin = isAdmin,
+                        isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso
                         onClick = { if (isAdmin) onEditProduct(product.id) },
                         onDelete = { inventoryViewModel.delete(product) }
                     )
@@ -88,6 +90,7 @@ fun InventoryScreen(
 private fun ProductCard(
     product: ProductEntity,
     isAdmin: Boolean,
+    isSuperAdmin: Boolean, // ✅ Añadido
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -118,7 +121,8 @@ private fun ProductCard(
                     }
                 }
 
-                if (isAdmin) {
+                // ✅ Solo el SuperAdmin puede ver el botón de eliminar
+                if (isSuperAdmin) {
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                     }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 data class AdminUsersUiState(
     val isLoading: Boolean = true,
     val isAdmin: Boolean = false,
+    val isSuperAdmin: Boolean = false, // ✅ Nuevo
     val users: List<RemoteUserRow> = emptyList(),
     val error: String? = null,
 
@@ -43,21 +44,25 @@ class AdminUsersViewModel(
             try {
                 _ui.value = _ui.value.copy(isLoading = true, error = null)
 
-                val isAdmin = authProfileRepo.isAdmin()
-                if (!isAdmin) {
+                val hasAccess = authProfileRepo.isAdmin() // Devuelve true para ADMIN y SUPERADMIN
+                val isSuper = authProfileRepo.isSuperAdmin()
+
+                if (!hasAccess) {
                     _ui.value = _ui.value.copy(
                         isLoading = false,
                         isAdmin = false,
+                        isSuperAdmin = false,
                         users = emptyList(),
-                        error = "No autorizado. Solo ADMIN."
+                        error = "No autorizado."
                     )
                     return@launch
                 }
 
-                val list = repo.listUsers() // ✅ incluye admins y sellers
+                val list = repo.listUsers()
                 _ui.value = _ui.value.copy(
                     isLoading = false,
                     isAdmin = true,
+                    isSuperAdmin = isSuper,
                     users = list,
                     error = null
                 )
@@ -68,55 +73,20 @@ class AdminUsersViewModel(
         }
     }
 
-    fun createSeller(email: String, password: String, displayName: String) {
-        viewModelScope.launch {
-            try {
-                if (!_ui.value.isAdmin) {
-                    _events.emit(AdminUsersEvent.Error("Solo ADMIN puede crear usuarios."))
-                    return@launch
-                }
-
-                val e = email.trim()
-                val d = displayName.trim()
-                if (d.isBlank()) {
-                    _events.emit(AdminUsersEvent.Error("Nombre obligatorio."))
-                    return@launch
-                }
-                if (e.isBlank()) {
-                    _events.emit(AdminUsersEvent.Error("Correo obligatorio."))
-                    return@launch
-                }
-                if (password.length < 6) {
-                    _events.emit(AdminUsersEvent.Error("Contraseña mínimo 6 caracteres."))
-                    return@launch
-                }
-
-                _ui.value = _ui.value.copy(isCreating = true)
-                // Usar registerSeller de AuthRepository o similar si repo no lo tiene
-                // Por ahora asumimos que repo tiene createSeller o similar
-                // repo.createSeller(email = e, password = password, displayName = d)
-                
-                _ui.value = _ui.value.copy(isCreating = false)
-                _events.emit(AdminUsersEvent.Message("Vendedor creado ✅"))
-                refresh()
-            } catch (t: Throwable) {
-                _ui.value = _ui.value.copy(isCreating = false)
-                _events.emit(AdminUsersEvent.Error(t.message ?: "Error creando vendedor"))
-            }
-        }
-    }
-
     fun setActive(user: RemoteUserRow, active: Boolean) {
         viewModelScope.launch {
             try {
-                if (!_ui.value.isAdmin) {
-                    _events.emit(AdminUsersEvent.Error("Solo ADMIN."))
+                // Solo el SuperAdmin puede desactivar a otros Admins
+                val isSuper = _ui.value.isSuperAdmin
+                if (!isSuper && user.role.uppercase() == "ADMIN") {
+                    _events.emit(AdminUsersEvent.Error("Solo el SuperAdmin puede modificar a otros administradores."))
                     return@launch
                 }
+
                 _ui.value = _ui.value.copy(isDeletingUid = user.uid)
                 repo.setActive(user.uid, active)
                 _ui.value = _ui.value.copy(isDeletingUid = null)
-                _events.emit(AdminUsersEvent.Message(if (active) "Usuario activado ✅" else "Usuario desactivado ✅"))
+                _events.emit(AdminUsersEvent.Message("Estado actualizado ✅"))
                 refresh()
             } catch (t: Throwable) {
                 _ui.value = _ui.value.copy(isDeletingUid = null)

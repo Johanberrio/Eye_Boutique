@@ -106,7 +106,7 @@ private fun UserRowCard(
     isWorking: Boolean,
     onToggleActive: (Boolean) -> Unit
 ) {
-    val isAdminUser = user.role.uppercase() == "ADMIN"
+    val isAdminUser = user.role.uppercase() == "ADMIN" || user.role.uppercase() == "SUPERADMIN"
     val canToggle = !isAdminUser && !isWorking // por seguridad: no desactivar admins
 
     Card {

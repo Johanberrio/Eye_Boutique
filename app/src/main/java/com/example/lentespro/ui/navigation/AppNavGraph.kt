@@ -28,6 +28,7 @@ fun AppNavGraph(
     )
     val profileState by profileVm.ui.collectAsState()
     val isAdmin = profileState.isAdmin
+    val isSuperAdmin = profileState.isSuperAdmin // ✅ Detectamos si es SuperAdmin
 
     NavHost(
         navController = navController,
@@ -101,6 +102,7 @@ fun AppNavGraph(
             InventoryScreen(
                 inventoryViewModel = vm,
                 isAdmin = isAdmin,
+                isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso de SuperAdmin
                 onBack = { navController.popBackStack() },
                 onAddProduct = { navController.navigate(Routes.EditProduct.create("new")) },
                 onEditProduct = { id -> navController.navigate(Routes.EditProduct.create(id)) }
@@ -116,7 +118,6 @@ fun AppNavGraph(
                 }
             )
         ) { backStackEntry ->
-            // ✅ SOLO ADMIN PUEDE ENTRAR A EDITAR O CREAR PRODUCTOS
             if (!isAdmin) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
@@ -137,7 +138,6 @@ fun AppNavGraph(
         }
 
         composable(Routes.NewRoute.route) {
-            // ✅ SOLO ADMIN PUEDE CREAR RUTAS
             if (!isAdmin) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
@@ -156,7 +156,6 @@ fun AppNavGraph(
         }
 
         composable(Routes.RoutesList.route) {
-            // ✅ TODOS LOS USUARIOS PUEDEN VER LA LISTA (SOLO LECTURA)
             val vm: RoutesListViewModel = viewModel(
                 factory = RoutesListViewModelFactory(
                     repo = container.saleRepository,
@@ -165,7 +164,7 @@ fun AppNavGraph(
             )
             RoutesListScreen(
                 viewModel = vm,
-                isAdmin = isAdmin, // ✅ Pasamos el rol para ocultar botones de edición en la pantalla
+                isAdmin = isAdmin,
                 onBack = { navController.popBackStack() },
                 onNewRoute = { navController.navigate(Routes.NewRoute.route) },
                 onFinalizeRoute = { saleId -> navController.navigate(Routes.FinalizeRoute.create(saleId)) },
@@ -182,7 +181,6 @@ fun AppNavGraph(
                 }
             )
         ) { backStackEntry ->
-            // ✅ TODOS PUEDEN ENTRAR, PERO EN LA PANTALLA SE BLOQUEARÁN LOS BOTONES DE ACCIÓN
             val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
             val vm: FinalizeRouteViewModel = viewModel(
                 factory = FinalizeRouteViewModelFactory(
@@ -207,7 +205,6 @@ fun AppNavGraph(
                 }
             )
         ) { backStackEntry ->
-            // ✅ EL DETALLE ES SOLO LECTURA, TODOS PUEDEN VERLO
             val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
             val vm: RouteDetailViewModel = viewModel(
                 factory = RouteDetailViewModelFactory(
@@ -231,12 +228,14 @@ fun AppNavGraph(
             )
             MessengersScreen(
                 viewModel = vm,
+                isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso de SuperAdmin
                 onBack = { navController.popBackStack() }
             )
         }
 
         composable(Routes.AdminUsers.route) {
-            if (!isAdmin) {
+            // ✅ SOLO EL SUPERADMIN PUEDE GESTIONAR USUARIOS AHORA
+            if (!isSuperAdmin) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
             }

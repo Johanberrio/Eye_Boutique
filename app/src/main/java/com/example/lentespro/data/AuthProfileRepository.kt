@@ -4,7 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-enum class UserRole { ADMIN, SELLER }
+enum class UserRole { SUPERADMIN, ADMIN, SELLER }
 
 data class UserProfile(
     val uid: String,
@@ -19,7 +19,14 @@ class AuthProfileRepository(
     suspend fun isAdmin(): Boolean {
         val uid = auth.currentUser?.uid ?: return false
         val doc = db.collection("users").document(uid).get().await()
-        return doc.getString("role") == "ADMIN"
+        val role = doc.getString("role")
+        return role == "ADMIN" || role == "SUPERADMIN"
+    }
+
+    suspend fun isSuperAdmin(): Boolean {
+        val uid = auth.currentUser?.uid ?: return false
+        val doc = db.collection("users").document(uid).get().await()
+        return doc.getString("role") == "SUPERADMIN"
     }
 
     suspend fun displayName(): String {
@@ -33,7 +40,11 @@ class AuthProfileRepository(
         val doc = db.collection("users").document(user.uid).get().await()
         
         val roleStr = doc.getString("role") ?: "SELLER"
-        val role = if (roleStr == "ADMIN") UserRole.ADMIN else UserRole.SELLER
+        val role = when (roleStr) {
+            "SUPERADMIN" -> UserRole.SUPERADMIN
+            "ADMIN" -> UserRole.ADMIN
+            else -> UserRole.SELLER
+        }
         
         return UserProfile(
             uid = user.uid,

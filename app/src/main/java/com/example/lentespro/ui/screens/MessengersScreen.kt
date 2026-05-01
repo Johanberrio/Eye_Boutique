@@ -17,6 +17,7 @@ import com.example.lentespro.ui.viewmodel.MessengersViewModel
 @Composable
 fun MessengersScreen(
     viewModel: MessengersViewModel,
+    isSuperAdmin: Boolean, // ✅ Añadido para controlar borrados
     onBack: () -> Unit
 ) {
     val list by viewModel.messengers.collectAsState()
@@ -82,7 +83,11 @@ fun MessengersScreen(
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(list, key = { it.id }) { m ->
-                    MessengerRow(m, onDelete = { viewModel.delete(m) })
+                    MessengerRow(
+                        m = m, 
+                        isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso
+                        onDelete = { viewModel.delete(m) }
+                    )
                 }
             }
         }
@@ -90,7 +95,11 @@ fun MessengersScreen(
 }
 
 @Composable
-private fun MessengerRow(m: MessengerEntity, onDelete: () -> Unit) {
+private fun MessengerRow(
+    m: MessengerEntity, 
+    isSuperAdmin: Boolean, // ✅ Añadido
+    onDelete: () -> Unit
+) {
     Card {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -101,8 +110,11 @@ private fun MessengerRow(m: MessengerEntity, onDelete: () -> Unit) {
                 Text("Cel: ${m.phone}")
                 if (!m.address.isNullOrBlank()) Text("Dir: ${m.address}")
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+            // ✅ Solo el SuperAdmin puede ver el botón de eliminar
+            if (isSuperAdmin) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                }
             }
         }
     }

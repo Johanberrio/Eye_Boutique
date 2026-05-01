@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 data class UserProfileUiState(
     val isLoading: Boolean = true,
     val isAdmin: Boolean = false,
+    val isSuperAdmin: Boolean = false, // ✅ Nuevo campo
     val displayName: String = "Usuario"
 )
 
@@ -31,10 +32,12 @@ class UserProfileViewModel(
             try {
                 _ui.value = _ui.value.copy(isLoading = true)
                 val admin = repo.isAdmin()
+                val superAdmin = repo.isSuperAdmin()
                 val name = repo.displayName()
                 _ui.value = UserProfileUiState(
                     isLoading = false,
                     isAdmin = admin,
+                    isSuperAdmin = superAdmin,
                     displayName = name
                 )
             } catch (_: Exception) {
@@ -42,6 +45,7 @@ class UserProfileViewModel(
                 _ui.value = UserProfileUiState(
                     isLoading = false,
                     isAdmin = false,
+                    isSuperAdmin = false,
                     displayName = "Usuario"
                 )
             }

@@ -1,9 +1,11 @@
 package com.example.lentespro.ui.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -15,6 +17,7 @@ import com.example.lentespro.AppContainer
 import com.example.lentespro.ui.screens.*
 import com.example.lentespro.ui.viewmodel.*
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavGraph(
@@ -22,13 +25,14 @@ fun AppNavGraph(
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
 
     val profileVm: UserProfileViewModel = viewModel(
         factory = UserProfileViewModelFactory(container.authProfileRepository)
     )
     val profileState by profileVm.ui.collectAsState()
     val isAdmin = profileState.isAdmin
-    val isSuperAdmin = profileState.isSuperAdmin // ✅ Detectamos si es SuperAdmin
+    val isSuperAdmin = profileState.isSuperAdmin
 
     NavHost(
         navController = navController,
@@ -74,9 +78,16 @@ fun AppNavGraph(
                     saleRepo = container.saleRepository
                 )
             )
+            
+            val darkModePref by container.biometricPrefs.darkModeFlow.collectAsState(initial = null)
+            val currentDark = darkModePref ?: isSystemInDarkTheme()
 
             DashboardScreen(
                 inventoryViewModel = inventoryVm,
+                isDarkMode = currentDark,
+                onToggleDarkMode = { enabled ->
+                    scope.launch { container.biometricPrefs.setDarkMode(enabled) }
+                },
                 onGoToInventory = { navController.navigate(Routes.Inventory.route) },
                 onAddProduct = { navController.navigate(Routes.EditProduct.create("new")) },
                 onGoToRoutes = { navController.navigate(Routes.RoutesList.route) },
@@ -102,10 +113,22 @@ fun AppNavGraph(
             InventoryScreen(
                 inventoryViewModel = vm,
                 isAdmin = isAdmin,
-                isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso de SuperAdmin
+                isSuperAdmin = isSuperAdmin,
                 onBack = { navController.popBackStack() },
                 onAddProduct = { navController.navigate(Routes.EditProduct.create("new")) },
+                onGoToAdminNotes = { navController.navigate(Routes.SuperAdminNotes.route) },
                 onEditProduct = { id -> navController.navigate(Routes.EditProduct.create(id)) }
+            )
+        }
+
+        composable(Routes.SuperAdminNotes.route) {
+            val vm: AdminNotesViewModel = viewModel(
+                factory = AdminNotesViewModelFactory(container.adminNotesRepository)
+            )
+            AdminNotesScreen(
+                viewModel = vm,
+                isSuperAdmin = isSuperAdmin,
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -127,6 +150,8 @@ fun AppNavGraph(
             val vm: EditProductViewModel = viewModel(
                 factory = EditProductViewModelFactory(
                     repo = container.productRepository,
+                    adminNotesRepo = container.adminNotesRepository,
+                    authProfileRepo = container.authProfileRepository, // ✅ Ahora se pasa el repositorio faltante
                     productId = productId
                 )
             )
@@ -228,13 +253,12 @@ fun AppNavGraph(
             )
             MessengersScreen(
                 viewModel = vm,
-                isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso de SuperAdmin
+                isSuperAdmin = isSuperAdmin,
                 onBack = { navController.popBackStack() }
             )
         }
 
         composable(Routes.AdminUsers.route) {
-            // ✅ SOLO EL SUPERADMIN PUEDE GESTIONAR USUARIOS AHORA
             if (!isSuperAdmin) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable

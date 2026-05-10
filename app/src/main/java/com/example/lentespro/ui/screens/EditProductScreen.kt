@@ -122,7 +122,7 @@ fun EditProductScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
-               OutlinedTextField(
+                OutlinedTextField(
                     value = state.stockMinimo,
                     onValueChange = { v -> viewModel.update { it.copy(stockMinimo = v) } },
                     label = { Text("Stock mínimo") },

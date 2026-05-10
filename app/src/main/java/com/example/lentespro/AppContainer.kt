@@ -8,12 +8,12 @@ import com.google.firebase.functions.FirebaseFunctions
 
 class AppContainer(context: Context) {
 
-    // ✅ Firebase singletons (Ahora son la única fuente de datos)
+    // ✅ Firebase singletons
     val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     val firebaseFunctions: FirebaseFunctions by lazy { FirebaseFunctions.getInstance() }
 
-    // ✅ Repositorios migrados a Firestore
+    // ✅ Repositorios
     val productRepository: ProductRepository by lazy {
         ProductRepository(firestore)
     }
@@ -24,6 +24,11 @@ class AppContainer(context: Context) {
 
     val messengerRepository: MessengerRepository by lazy {
         MessengerRepository(firestore)
+    }
+    
+    // ✅ Nuevo: Repositorio para notas informativas
+    val adminNotesRepository: AdminNotesRepository by lazy {
+        AdminNotesRepository(firestore)
     }
 
     // Biometría (local)

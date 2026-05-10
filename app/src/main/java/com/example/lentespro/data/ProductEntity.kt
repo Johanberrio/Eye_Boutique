@@ -4,22 +4,18 @@ import com.google.firebase.firestore.DocumentId
 
 /**
  * Entidad que representa un producto en el inventario.
- * Ahora está preparada para funcionar directamente con Cloud Firestore.
  */
 data class ProductEntity(
-    @DocumentId val id: String = "", // El ID del documento de Firestore
+    @DocumentId val id: String = "",
 
     // Identidad del producto
     val nombre: String = "",
     val marca: String = "",
     val color: String = "",
-    val tipo: String = "", // diaria / quincenal / mensual / anual / etc.
+    val tipo: String = "",
 
-    // Parámetros ópticos
+    // Parámetros ópticos (Solicitados: Esfera y Diámetro)
     val potenciaEsferica: Double = 0.0,
-    val cilindro: Double? = null,
-    val eje: Int? = null,
-    val curvaBase: Double? = null,
     val diametro: Double? = null,
 
     // Inventario y precios

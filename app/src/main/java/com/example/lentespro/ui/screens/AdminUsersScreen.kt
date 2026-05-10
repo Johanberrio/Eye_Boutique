@@ -87,7 +87,8 @@ fun AdminUsersScreen(
                         items(state.users, key = { it.uid }) { user ->
                             UserRowCard(
                                 user = user,
-                                isWorking = state.isDeletingUid == user.uid, // reutilizamos el mismo campo
+                                currentUserIsSuperAdmin = state.isSuperAdmin, // ✅ Pasamos si quien opera es SuperAdmin
+                                isWorking = state.isDeletingUid == user.uid,
                                 onToggleActive = { newActive ->
                                     viewModel.setActive(user, newActive)
                                 }
@@ -103,11 +104,19 @@ fun AdminUsersScreen(
 @Composable
 private fun UserRowCard(
     user: RemoteUserRow,
+    currentUserIsSuperAdmin: Boolean, // ✅ Nuevo parámetro
     isWorking: Boolean,
     onToggleActive: (Boolean) -> Unit
 ) {
-    val isAdminUser = user.role.uppercase() == "ADMIN" || user.role.uppercase() == "SUPERADMIN"
-    val canToggle = !isAdminUser && !isWorking // por seguridad: no desactivar admins
+    val targetIsSuperAdmin = user.role.uppercase() == "SUPERADMIN"
+    val targetIsAdmin = user.role.uppercase() == "ADMIN"
+    
+    // ✅ Un SuperAdmin puede editar a cualquier Admin, pero nadie puede editar a un SuperAdmin (solo por consola)
+    val canToggle = !isWorking && when {
+        targetIsSuperAdmin -> false
+        targetIsAdmin -> currentUserIsSuperAdmin
+        else -> true // Vendedores siempre editables por Admin/SuperAdmin
+    }
 
     Card {
         Row(
@@ -131,8 +140,8 @@ private fun UserRowCard(
                 CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
             } else {
                 Column(horizontalAlignment = Alignment.End) {
-                    if (isAdminUser) {
-                        AssistChip(onClick = {}, label = { Text("ADMIN") })
+                    if (!canToggle && (targetIsAdmin || targetIsSuperAdmin)) {
+                        AssistChip(onClick = {}, label = { Text(user.role.uppercase()) })
                         Spacer(Modifier.height(6.dp))
                         Text("No editable", style = MaterialTheme.typography.bodySmall)
                     } else {
@@ -141,7 +150,7 @@ private fun UserRowCard(
                             Spacer(Modifier.width(8.dp))
                             Switch(
                                 checked = user.active,
-                                onCheckedChange = { if (canToggle) onToggleActive(it) },
+                                onCheckedChange = { onToggleActive(it) },
                                 enabled = canToggle
                             )
                         }

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,9 +23,10 @@ import com.example.lentespro.util.Formatters
 fun InventoryScreen(
     inventoryViewModel: InventoryViewModel,
     isAdmin: Boolean,
-    isSuperAdmin: Boolean, // ✅ Añadido para controlar borrados
+    isSuperAdmin: Boolean,
     onBack: () -> Unit,
     onAddProduct: () -> Unit,
+    onGoToAdminNotes: () -> Unit, // ✅ Renombrado para mayor claridad
     onEditProduct: (String) -> Unit
 ) {
     val products by inventoryViewModel.products.collectAsState()
@@ -40,6 +42,12 @@ fun InventoryScreen(
                     }
                 },
                 actions = {
+                    // ✅ Botón para acceder a la página de información/notas
+                    TextButton(onClick = onGoToAdminNotes) {
+                        Icon(Icons.Default.Notes, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Lista Nueva")
+                    }
                     if (isAdmin) {
                         IconButton(onClick = onAddProduct) {
                             Icon(Icons.Default.Add, contentDescription = "Agregar")
@@ -75,7 +83,7 @@ fun InventoryScreen(
                     ProductCard(
                         product = product,
                         isAdmin = isAdmin,
-                        isSuperAdmin = isSuperAdmin, // ✅ Pasamos permiso
+                        isSuperAdmin = isSuperAdmin,
                         onClick = { if (isAdmin) onEditProduct(product.id) },
                         onDelete = { inventoryViewModel.delete(product) }
                     )
@@ -90,7 +98,7 @@ fun InventoryScreen(
 private fun ProductCard(
     product: ProductEntity,
     isAdmin: Boolean,
-    isSuperAdmin: Boolean, // ✅ Añadido
+    isSuperAdmin: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -111,17 +119,14 @@ private fun ProductCard(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     val extra = buildString {
-                        if (product.cilindro != null) append(" Cil: ${product.cilindro}")
-                        if (product.eje != null) append(" Eje: ${product.eje}")
-                        if (product.curvaBase != null) append(" BC: ${product.curvaBase}")
                         if (product.diametro != null) append(" DIA: ${product.diametro}")
+                        if (product.potenciaEsferica != 0.0) append(" SPH: ${product.potenciaEsferica}")
                     }.trim()
                     if (extra.isNotBlank()) {
                         Text(extra, style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
-                // ✅ Solo el SuperAdmin puede ver el botón de eliminar
                 if (isSuperAdmin) {
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Eliminar")

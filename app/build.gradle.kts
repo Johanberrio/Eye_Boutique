@@ -14,10 +14,15 @@ android {
         applicationId = "com.example.lentespro"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "2.5"
+        versionCode = 5
+        versionName = "3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // ✅ Forzamos a que todo el ecosistema (Java y Kotlin) use la misma versión
+    kotlin {
+        jvmToolchain(17)
     }
 
     buildTypes {
@@ -30,12 +35,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -56,6 +61,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.fragment.ktx)
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation(libs.guava)
+    implementation(libs.guava.listenablefuture)
     
     // DataStore para preferencias persistentes
     implementation(libs.androidx.datastore.preferences)
@@ -76,6 +83,13 @@ dependencies {
 
     // Desugaring para java.time
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
+    // ✅ CameraX y ML Kit para Scanner
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.text.recognition)
 }
 
 kapt {

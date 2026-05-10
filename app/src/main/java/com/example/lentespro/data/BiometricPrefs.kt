@@ -14,9 +14,13 @@ class BiometricPrefs(private val context: Context) {
 
     private val KEY_ENABLED = booleanPreferencesKey("biometric_enabled")
     private val KEY_LAST_UID = stringPreferencesKey("last_uid")
+    private val KEY_DARK_MODE = booleanPreferencesKey("dark_mode") // ✅ Nuevo: Modo oscuro
 
     val enabledFlow: Flow<Boolean> = context.dataStore.data.map { it[KEY_ENABLED] ?: false }
     val lastUidFlow: Flow<String?> = context.dataStore.data.map { it[KEY_LAST_UID] }
+    
+    // ✅ Nuevo: Flow para observar el modo oscuro
+    val darkModeFlow: Flow<Boolean?> = context.dataStore.data.map { it[KEY_DARK_MODE] }
 
     suspend fun setEnabled(enabled: Boolean) {
         context.dataStore.edit { it[KEY_ENABLED] = enabled }
@@ -28,10 +32,19 @@ class BiometricPrefs(private val context: Context) {
         }
     }
 
+    // ✅ Nuevo: Guardar preferencia de modo oscuro
+    suspend fun setDarkMode(enabled: Boolean?) {
+        context.dataStore.edit {
+            if (enabled == null) it.remove(KEY_DARK_MODE)
+            else it[KEY_DARK_MODE] = enabled
+        }
+    }
+
     suspend fun clear() {
         context.dataStore.edit {
             it.remove(KEY_ENABLED)
             it.remove(KEY_LAST_UID)
+            it.remove(KEY_DARK_MODE)
         }
     }
 }

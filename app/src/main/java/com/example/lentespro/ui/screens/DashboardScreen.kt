@@ -3,12 +3,7 @@ package com.example.lentespro.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.TwoWheeler
-import androidx.compose.material.icons.filled.Route
-import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,6 +17,8 @@ import com.example.lentespro.ui.viewmodel.InventoryViewModel
 @Composable
 fun DashboardScreen(
     inventoryViewModel: InventoryViewModel,
+    isDarkMode: Boolean, // ✅ Nuevo: Estado del tema
+    onToggleDarkMode: (Boolean) -> Unit, // ✅ Nuevo: Acción para cambiar tema
     onGoToInventory: () -> Unit,
     onAddProduct: () -> Unit,
     onGoToRoutes: () -> Unit,
@@ -47,6 +44,13 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("LentesPro") },
                 actions = {
+                    // ✅ Botón para alternar modo oscuro
+                    IconButton(onClick = { onToggleDarkMode(!isDarkMode) }) {
+                        Icon(
+                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Cambiar tema"
+                        )
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
@@ -110,7 +114,6 @@ fun DashboardScreen(
                 Text("Ir a Inventario")
             }
 
-            // ✅ Movido fuera del bloque 'if (isAdmin)' para que todos lo vean
             Button(
                 onClick = onGoToRoutes,
                 modifier = Modifier.fillMaxWidth()

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material3.*
@@ -63,6 +64,34 @@ fun NewRouteScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            
+            // ✅ NUEVO: SECCIÓN AUTO-COMPLETADO (Pega el texto aquí)
+            stickyHeader { SectionHeaderSticky("Auto-completar desde texto") }
+            
+            item {
+                OutlinedTextField(
+                    value = state.autoFillText,
+                    onValueChange = viewModel::setAutoFillText,
+                    label = { Text("Pega aquí los datos (WhatsApp, etc.)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    placeholder = { Text("Nombre: Juan\nTel: 123...\nDirección: Calle 10\nBarrio: Centro") }
+                )
+            }
+            
+            item {
+                Button(
+                    onClick = viewModel::processAutoFill,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.autoFillText.isNotBlank()
+                ) {
+                    Icon(Icons.Default.AutoFixHigh, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Procesar y llenar campos")
+                }
+            }
+
+            item { Divider() }
 
             // ---------- CLIENTE ----------
             stickyHeader { SectionHeaderSticky("Cliente") }
@@ -124,7 +153,6 @@ fun NewRouteScreen(
             stickyHeader { SectionHeaderSticky("Ruta") }
 
             item {
-                // ✅ Dropdown de Mensajeros
                 MessengerSelector(
                     options = state.messengerOptions,
                     selected = state.messengerName,

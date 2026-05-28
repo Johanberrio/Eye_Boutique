@@ -1,6 +1,6 @@
 # Eye_Boutique 
 
-**Versión 3.0**
+**Versión 4.0**
 
 Una aplicación Android nativa desarrollada en Kotlin que proporciona una solución integral para la gestión de una boutique de lentes oftálmicos.
 
@@ -74,8 +74,8 @@ Eye_Boutique es la **primera versión** de una aplicación móvil diseñada para
 
 
 ### Versión Actual
-- **Version Code**: 3
-- **Version Name**: 2.0
+- **Version Code**: 6
+- **Version Name**: 4.0
 
 ## 🚀 Requisitos Previos
 
@@ -155,6 +155,13 @@ Esta es la primera versión (**MVP**) de **Eye_Boutique** que incluye:
 - ✅ Marca y precio valores predeterminados
 - ✅ Se agregó un botón de lista nueva para incluir las listas de lentes próximos a llegar desde China
 - ✅ Se agrega lógica para escaneo de datos de inventarios, pero falta mejorarlo.
+
+## 📝 Notas de Versión (v4.0)
+
+- ✅ Gemini como asistente de IA
+- ✅ Fotos del producto en inventario
+- ✅ Historial de ventas
+- ✅ Graficás en historial de ventas por meses y colores.
 
 ## 📄 Licencia
 

@@ -27,6 +27,18 @@ class SaleRepository(
         awaitClose { subscription.remove() }
     }
 
+    /**
+     * ✅ Obtener todas las ventas una sola vez (Útil para análisis de Gemini)
+     */
+    suspend fun getAllSalesOnce(): List<SaleEntity> {
+        return try {
+            val snapshot = salesCollection.get().await()
+            snapshot.documents.mapNotNull { it.toObject(SaleEntity::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     suspend fun getSaleOnce(saleId: String): SaleEntity? {
         return try {
             val doc = salesCollection.document(saleId).get().await()
@@ -36,10 +48,6 @@ class SaleRepository(
         }
     }
 
-    /**
-     * ✅ CREAR RUTA (DISPATCH):
-     * Corregido: Lecturas primero, luego escrituras.
-     */
     suspend fun createRouteDispatch(
         messengerName: String?,
         notes: String?,
@@ -51,29 +59,26 @@ class SaleRepository(
         customerNeighborhood: String
     ): String {
         return db.runTransaction { transaction ->
-            // 1. OBTENER REFERENCIAS
             val saleDocRef = salesCollection.document()
             val productRefs = items.map { productsCollection.document(it.productId) }
 
-            // 2. REALIZAR TODAS LAS LECTURAS (READS) PRIMERO
             val productSnapshots = productRefs.map { transaction.get(it) }
             val products = productSnapshots.map { snap ->
                 snap.toObject(ProductEntity::class.java) ?: error("Producto no encontrado")
             }
 
-            // 3. REALIZAR TODAS LAS ESCRITURAS (WRITES) DESPUÉS
             val saleItems = items.mapIndexed { index, item ->
                 val product = products[index]
                 if (product.cantidad < item.quantity) {
                     error("Stock insuficiente para ${product.nombre}")
                 }
 
-                // Programar actualización de stock
                 transaction.update(productRefs[index], "cantidad", product.cantidad - item.quantity)
 
                 SaleItemEntity(
                     productId = item.productId,
                     productName = "${product.nombre} (${product.marca})",
+                    lensName = product.nombre, 
                     unitPrice = item.unitPrice,
                     dispatchedQty = item.quantity
                 )
@@ -96,10 +101,6 @@ class SaleRepository(
         }.await()
     }
 
-    /**
-     * ✅ FINALIZAR RUTA:
-     * Corregido: Lecturas primero, luego escrituras.
-     */
     suspend fun finalizeDispatch(
         saleId: String,
         soldByProductId: Map<String, Int>,
@@ -107,24 +108,20 @@ class SaleRepository(
         sellerName: String
     ) {
         db.runTransaction { transaction ->
-            // 1. LECTURA DE LA VENTA
             val saleRef = salesCollection.document(saleId)
             val saleSnap = transaction.get(saleRef)
             val sale = saleSnap.toObject(SaleEntity::class.java) ?: error("Venta no encontrada")
 
             if (sale.status != SaleStatus.EN_RUTA) error("Esta venta ya fue finalizada")
 
-            // 2. IDENTIFICAR PRODUCTOS QUE NECESITAN REINGRESO DE STOCK
             val itemsConDevolucion = sale.items.filter { 
                 (it.dispatchedQty - (soldByProductId[it.productId] ?: 0)) > 0 
             }
             val productRefs = itemsConDevolucion.map { productsCollection.document(it.productId) }
 
-            // 3. REALIZAR TODAS LAS LECTURAS DE PRODUCTOS
             val productSnaps = productRefs.map { transaction.get(it) }
             val productsMap = productSnaps.associate { it.id to (it.toObject(ProductEntity::class.java) ?: error("Producto no encontrado")) }
 
-            // 4. REALIZAR TODAS LAS ESCRITURAS
             val updatedItems = sale.items.map { item ->
                 val sold = soldByProductId[item.productId] ?: 0
                 val returned = item.dispatchedQty - sold

@@ -38,9 +38,17 @@ class ProductRepository(
     }
 
     /**
-     * Búsqueda optimizada que ignora tildes y mayúsculas/minúsculas.
-     * Normaliza tanto la consulta como los datos almacenados para la comparación.
+     * ✅ Obtener todos los productos una sola vez (Útil para análisis de Gemini)
      */
+    suspend fun getAllOnce(): List<ProductEntity> {
+        return try {
+            val snapshot = collection.get().await()
+            snapshot.documents.mapNotNull { it.toObject(ProductEntity::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     fun observeSearch(q: String): Flow<List<ProductEntity>> = callbackFlow {
         val normalizedQuery = Formatters.normalize(q)
         

@@ -16,10 +16,11 @@ googleServices = "4.4.2"
 transportationConsumer = "4.0.0"
 room = "2.7.0-alpha11"
 ksp = "2.0.21-1.0.26"
-# ✅ Versiones para Scanner
 camerax = "1.3.4"
-mlkitText = "16.0.1"
-
+mlkitText = "16.0.0"
+googleAi = "0.9.0"
+# ✅ Coil para imágenes
+coil = "2.6.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,16 +44,19 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 guava-listenablefuture = { group = "com.google.guava", name = "listenablefuture", version = "9999.0-empty-to-avoid-conflict-with-guava" }
-guava = { group = "com.google.guava", name = "guava", version = "33.2.1-android" }
+guava-core = { group = "com.google.guava", name = "guava", version = "33.2.1-android" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStore" }
 transportation-consumer = { group = "com.google.android.libraries.mapsplatform.transportation", name = "transportation-consumer", version.ref = "transportationConsumer" }
 
-# ✅ Librerías de CameraX y ML Kit
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitText" }
+google-ai-client = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "googleAi" }
+
+# ✅ Coil Compose
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

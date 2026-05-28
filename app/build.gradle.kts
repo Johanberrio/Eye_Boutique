@@ -14,13 +14,12 @@ android {
         applicationId = "com.example.lentespro"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "3.0"
+        versionCode = 6
+        versionName = "4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // ✅ Forzamos a que todo el ecosistema (Java y Kotlin) use la misma versión
     kotlin {
         jvmToolchain(17)
     }
@@ -61,10 +60,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.fragment.ktx)
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
-    implementation(libs.guava)
+    implementation(libs.guava.core)
     implementation(libs.guava.listenablefuture)
     
-    // DataStore para preferencias persistentes
     implementation(libs.androidx.datastore.preferences)
     
     testImplementation(libs.junit)
@@ -75,21 +73,23 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     
-    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-functions-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
-    // Desugaring para java.time
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
-    // ✅ CameraX y ML Kit para Scanner
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.text.recognition)
+
+    implementation(libs.google.ai.client)
+    
+    implementation(libs.coil.compose)
 }
 
 kapt {

@@ -92,6 +92,8 @@ fun AppNavGraph(
                 onAddProduct = { navController.navigate(Routes.EditProduct.create("new")) },
                 onGoToRoutes = { navController.navigate(Routes.RoutesList.route) },
                 onGoToMessengers = { navController.navigate(Routes.Messengers.route) },
+                onGoToHistory = { navController.navigate(Routes.SalesHistory.route) },
+                onGoToGemini = { navController.navigate(Routes.GeminiChat.route) }, // ✅ Corregido
                 isAdmin = isAdmin,
                 onGoToAdminUsers = { navController.navigate(Routes.AdminUsers.route) },
                 onLogout = { 
@@ -132,6 +134,37 @@ fun AppNavGraph(
             )
         }
 
+        composable(Routes.SalesHistory.route) {
+            val vm: SalesHistoryViewModel = viewModel(
+                factory = SalesHistoryViewModelFactory(container.saleRepository)
+            )
+            SalesHistoryScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.GeminiChat.route) {
+            val vm: GeminiChatViewModel = viewModel(
+                factory = GeminiChatViewModelFactory(
+                    geminiRepo = container.geminiRepository,
+                    productRepo = container.productRepository,
+                    saleRepo = container.saleRepository
+                )
+            )
+            GeminiChatScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+                onNavigateCommand = { target ->
+                    when(target) {
+                        "INVENTORY" -> navController.navigate(Routes.Inventory.route)
+                        "ROUTES" -> navController.navigate(Routes.RoutesList.route)
+                        "HISTORY" -> navController.navigate(Routes.SalesHistory.route)
+                    }
+                }
+            )
+        }
+
         composable(
             route = Routes.EditProduct.route,
             arguments = listOf(
@@ -151,7 +184,7 @@ fun AppNavGraph(
                 factory = EditProductViewModelFactory(
                     repo = container.productRepository,
                     adminNotesRepo = container.adminNotesRepository,
-                    authProfileRepo = container.authProfileRepository, // ✅ Ahora se pasa el repositorio faltante
+                    authProfileRepo = container.authProfileRepository,
                     productId = productId
                 )
             )

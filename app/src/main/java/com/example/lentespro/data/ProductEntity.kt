@@ -13,6 +13,7 @@ data class ProductEntity(
     val marca: String = "",
     val color: String = "",
     val tipo: String = "",
+    val imageUrl: String? = null, // ✅ Nueva: URL de la imagen en Firebase Storage
 
     // Parámetros ópticos (Solicitados: Esfera y Diámetro)
     val potenciaEsferica: Double = 0.0,

@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.lentespro.ui.viewmodel.InventoryViewModel
 
@@ -17,12 +18,14 @@ import com.example.lentespro.ui.viewmodel.InventoryViewModel
 @Composable
 fun DashboardScreen(
     inventoryViewModel: InventoryViewModel,
-    isDarkMode: Boolean, // ✅ Nuevo: Estado del tema
-    onToggleDarkMode: (Boolean) -> Unit, // ✅ Nuevo: Acción para cambiar tema
+    isDarkMode: Boolean,
+    onToggleDarkMode: (Boolean) -> Unit,
     onGoToInventory: () -> Unit,
     onAddProduct: () -> Unit,
     onGoToRoutes: () -> Unit,
     onGoToMessengers: () -> Unit,
+    onGoToHistory: () -> Unit,
+    onGoToGemini: () -> Unit,
     isAdmin: Boolean,
     onGoToAdminUsers: () -> Unit,
     onLogout: () -> Unit
@@ -37,14 +40,11 @@ fun DashboardScreen(
     val ventasPeriodoActualCount by inventoryViewModel.ventasPeriodoActualCount.collectAsState()
     val totalHistoricoVendido by inventoryViewModel.totalHistoricoVendido.collectAsState()
 
-    val isAlert = alertaTotalBajo
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("LentesPro") },
                 actions = {
-                    // ✅ Botón para alternar modo oscuro
                     IconButton(onClick = { onToggleDarkMode(!isDarkMode) }) {
                         Icon(
                             imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
@@ -62,9 +62,24 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            if (isAdmin) {
-                FloatingActionButton(onClick = onAddProduct) {
-                    Icon(Icons.Default.Add, contentDescription = "Agregar producto")
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // ✅ Botón de Gemini (Arriba del +)
+                FloatingActionButton(
+                    onClick = onGoToGemini,
+                    containerColor = Color(0xFF673AB7),
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = "Asistente Gemini")
+                }
+
+                // Botón de Agregar (Abajo)
+                if (isAdmin) {
+                    FloatingActionButton(onClick = onAddProduct) {
+                        Icon(Icons.Default.Add, contentDescription = "Agregar producto")
+                    }
                 }
             }
         }
@@ -76,6 +91,7 @@ fun DashboardScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // ✅ RESTAURADO: Tarjeta de Resumen con todos los contadores
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Resumen", style = MaterialTheme.typography.titleMedium)
@@ -93,12 +109,12 @@ fun DashboardScreen(
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = if (isAlert) MaterialTheme.colorScheme.error
+                            tint = if (alertaTotalBajo) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = if (isAlert) "⚠️ Alerta: inventario total bajo (≤ 50)"
+                            text = if (alertaTotalBajo) "⚠️ Alerta: inventario total bajo (≤ 50)"
                                    else "Inventario total OK"
                         )
                     }
@@ -121,6 +137,15 @@ fun DashboardScreen(
                 Icon(Icons.Default.Route, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Rutas (salidas y entregas)")
+            }
+
+            Button(
+                onClick = onGoToHistory,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.History, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Historial")
             }
 
             if (isAdmin) {

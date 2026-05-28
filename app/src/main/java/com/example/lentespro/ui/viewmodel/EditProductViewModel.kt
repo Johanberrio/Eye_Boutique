@@ -1,5 +1,7 @@
 package com.example.lentespro.ui.viewmodel
 
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lentespro.data.AdminNotesRepository
@@ -7,12 +9,15 @@ import com.example.lentespro.data.AuthProfileRepository
 import com.example.lentespro.data.ProductEntity
 import com.example.lentespro.data.ProductRepository
 import com.example.lentespro.util.Formatters
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 data class EditProductUiState(
     val id: String = "",
@@ -28,6 +33,8 @@ data class EditProductUiState(
     val fechaCaducidad: String = "",
     val lote: String = "",
     val notas: String = "",
+    val imageUrl: String? = null,
+    val selectedImageUri: Uri? = null,
     val isLoading: Boolean = false,
     val isScanning: Boolean = false
 )
@@ -50,6 +57,8 @@ class EditProductViewModel(
 
     private val _events = MutableSharedFlow<EditProductEvent>()
     val events = _events.asSharedFlow()
+
+    private val storage = FirebaseStorage.getInstance()
 
     init {
         viewModelScope.launch {
@@ -75,27 +84,112 @@ class EditProductViewModel(
         _uiState.update { it.copy(isScanning = enabled) }
     }
 
+    fun onImageSelected(uri: Uri?) {
+        _uiState.update { it.copy(selectedImageUri = uri) }
+    }
+
+    private suspend fun uploadImage(uri: Uri): String {
+        // Esta función ahora lanza excepciones para que save() pueda capturarlas y mostrarlas
+        val fileName = "products/${UUID.randomUUID()}.jpg"
+        val ref = storage.reference.child(fileName)
+        ref.putFile(uri).await()
+        return ref.downloadUrl.await().toString()
+    }
+
+    fun save() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.nombre.isBlank() || state.marca.isBlank()) {
+                _events.emit(EditProductEvent.ShowError("Nombre y marca son obligatorios."))
+                return@launch
+            }
+
+            _uiState.update { it.copy(isLoading = true) }
+
+            try {
+                // 1. Subir imagen si hay una nueva seleccionada
+                var finalImageUrl = state.imageUrl
+                state.selectedImageUri?.let { uri ->
+                    try {
+                        finalImageUrl = uploadImage(uri)
+                    } catch (e: Exception) {
+                        Log.e("LentesPro", "Error subiendo imagen", e)
+                        _events.emit(EditProductEvent.ShowError("Fallo al subir imagen: ${e.localizedMessage}"))
+                        _uiState.update { it.copy(isLoading = false) }
+                        return@launch // Detenemos el guardado si falla la imagen
+                    }
+                }
+
+                // 2. Crear y guardar la entidad
+                val entity = ProductEntity(
+                    id = if (productId == "new") "" else productId,
+                    nombre = Formatters.normalize(state.nombre),
+                    marca = Formatters.normalize(state.marca),
+                    color = Formatters.normalize(state.color),
+                    tipo = state.tipo.trim(),
+                    imageUrl = finalImageUrl, // ✅ Se guarda la URL final
+                    potenciaEsferica = state.potenciaEsferica.replace(',', '.').toDoubleOrNull() ?: 0.0,
+                    diametro = state.diametro.replace(',', '.').toDoubleOrNull(),
+                    cantidad = state.cantidad.toIntOrNull() ?: 0,
+                    stockMinimo = state.stockMinimo.toIntOrNull() ?: 1,
+                    precioVenta = state.precioVenta.replace(',', '.').toDoubleOrNull() ?: 0.0,
+                    fechaCaducidadEpochMillis = Formatters.dateTextToEpochMillisOrNull(state.fechaCaducidad),
+                    lote = state.lote.trim().ifBlank { null },
+                    notas = state.notas.trim().ifBlank { null },
+                    actualizadoEnEpochMillis = System.currentTimeMillis()
+                )
+
+                repo.upsert(entity)
+
+                // Borrar lista informativa si es SuperAdmin
+                if (authProfileRepo.isSuperAdmin()) {
+                    adminNotesRepo.updateNotes("") 
+                }
+
+                _events.emit(EditProductEvent.ShowSuccess("Producto guardado ✅"))
+                _events.emit(EditProductEvent.NavigateBack)
+            } catch (e: Exception) {
+                Log.e("LentesPro", "Error al guardar producto", e)
+                _events.emit(EditProductEvent.ShowError("Error al guardar: ${e.localizedMessage}"))
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    private fun ProductEntity.toUiState(): EditProductUiState {
+        return EditProductUiState(
+            id = id,
+            nombre = nombre,
+            marca = marca,
+            color = color,
+            tipo = tipo,
+            imageUrl = imageUrl, // ✅ Recuperamos la imagen guardada
+            potenciaEsferica = if (potenciaEsferica == 0.0) "" else potenciaEsferica.toString(),
+            diametro = diametro?.toString() ?: "",
+            cantidad = cantidad.toString(),
+            stockMinimo = stockMinimo.toString(),
+            precioVenta = precioVenta.toString(),
+            fechaCaducidad = if (fechaCaducidadEpochMillis == null) "" else Formatters.epochMillisToDateText(fechaCaducidadEpochMillis),
+            lote = lote.orEmpty(),
+            notas = notas.orEmpty(),
+            isLoading = false
+        )
+    }
+
     fun onTextScanned(rawText: String) {
         val fullText = rawText.replace("\n", " ").replace("\r", " ")
         var foundLote = ""; var foundExp = ""; var foundDia = ""; var foundSph = ""
-
         val loteRegex = Regex("""(?i)(?:LOT|LOTE|L)[:\s]*([A-Z0-9-]+)""")
         val expRegex = Regex("""(?i)(?:EXP|VENCE|CAD)[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}/\d{4}|\d{2}-\d{4})""")
         val diaRegex = Regex("""(?i)(?:DIA|DIAM)[:\s]*(1[34][.,]\d)""")
         val sphRegex = Regex("""(?i)(?:PWR|SPH|ESF|D|P)[:\s]*([+-]\d{1,2}[.,]\d{2})""")
-
         loteRegex.find(fullText)?.let { foundLote = it.groupValues[1] }
         expRegex.find(fullText)?.let { foundExp = it.groupValues[1] }
         diaRegex.find(fullText)?.let { foundDia = it.groupValues[1] }
         sphRegex.find(fullText)?.let { foundSph = it.groupValues[1] }
-
-        if (foundDia.isBlank()) {
-            Regex("""\b(1[34][.,][0-9])\b""").find(fullText)?.let { foundDia = it.groupValues[1] }
-        }
-        if (foundSph.isBlank()) {
-            Regex("""\b([+-]\d[.,]\d{2})\b""").find(fullText)?.let { foundSph = it.groupValues[1] }
-        }
-
+        if (foundDia.isBlank()) Regex("""\b(1[34][.,][0-9])\b""").find(fullText)?.let { foundDia = it.groupValues[1] }
+        if (foundSph.isBlank()) Regex("""\b([+-]\d[.,]\d{2})\b""").find(fullText)?.let { foundSph = it.groupValues[1] }
         _uiState.update { state ->
             state.copy(
                 lote = foundLote.ifBlank { state.lote },
@@ -109,73 +203,12 @@ class EditProductViewModel(
     private fun normalizeDate(date: String): String {
         return when {
             date.contains("/") -> {
-                val parts = date.split("/")
-                if (parts.size == 2) "${parts[1]}-${parts[0]}-01" else date
+                val parts = date.split("/"); if (parts.size == 2) "${parts[1]}-${parts[0]}-01" else date
             }
             date.contains("-") && date.length == 7 -> {
-                val parts = date.split("-")
-                "${parts[1]}-${parts[0]}-01"
+                val parts = date.split("-"); "${parts[1]}-${parts[0]}-01"
             }
             else -> date
         }
-    }
-
-    fun save() {
-        viewModelScope.launch {
-            val state = _uiState.value
-            val nombre = Formatters.normalize(state.nombre)
-            val marca = Formatters.normalize(state.marca)
-
-            if (nombre.isBlank() || marca.isBlank()) {
-                _events.emit(EditProductEvent.ShowError("Nombre y marca son obligatorios."))
-                return@launch
-            }
-
-            fun String.toDoubleSafe() = this.replace(',', '.').toDoubleOrNull()
-
-            val entity = ProductEntity(
-                id = if (productId == "new") "" else productId,
-                nombre = nombre,
-                marca = marca,
-                color = Formatters.normalize(state.color),
-                tipo = state.tipo.trim(),
-                potenciaEsferica = state.potenciaEsferica.toDoubleSafe() ?: 0.0,
-                diametro = state.diametro.toDoubleSafe(),
-                cantidad = state.cantidad.toIntOrNull() ?: 0,
-                stockMinimo = state.stockMinimo.toIntOrNull() ?: 1,
-                precioVenta = state.precioVenta.toDoubleSafe() ?: 0.0,
-                fechaCaducidadEpochMillis = Formatters.dateTextToEpochMillisOrNull(state.fechaCaducidad),
-                lote = state.lote.trim().ifBlank { null },
-                notas = state.notas.trim().ifBlank { null },
-                actualizadoEnEpochMillis = System.currentTimeMillis()
-            )
-
-            try {
-                repo.upsert(entity)
-                // Borrar notas solo si es SuperAdmin
-                if (authProfileRepo.isSuperAdmin()) {
-                    adminNotesRepo.updateNotes("") 
-                }
-                _events.emit(EditProductEvent.ShowSuccess("Producto guardado ✅"))
-                _events.emit(EditProductEvent.NavigateBack)
-            } catch (e: Exception) {
-                _events.emit(EditProductEvent.ShowError("Error al guardar."))
-            }
-        }
-    }
-
-    private fun ProductEntity.toUiState(): EditProductUiState {
-        return EditProductUiState(
-            id = id, nombre = nombre, marca = marca, color = color, tipo = tipo,
-            potenciaEsferica = if (potenciaEsferica == 0.0) "" else potenciaEsferica.toString(),
-            diametro = diametro?.toString() ?: "",
-            cantidad = cantidad.toString(),
-            stockMinimo = stockMinimo.toString(),
-            precioVenta = precioVenta.toString(),
-            fechaCaducidad = if (fechaCaducidadEpochMillis == null) "" else Formatters.epochMillisToDateText(fechaCaducidadEpochMillis),
-            lote = lote.orEmpty(),
-            notas = notas.orEmpty(),
-            isLoading = false
-        )
     }
 }

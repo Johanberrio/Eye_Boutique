@@ -26,7 +26,7 @@ fun AdminNotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Información / Notas") },
+                title = { Text("Lista / Lentes nuevos") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")

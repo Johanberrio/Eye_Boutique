@@ -12,6 +12,8 @@ sealed class Routes(val route: String) {
     data object Messengers : Routes("messengers")
     data object AdminUsers : Routes("adminUsers")
     data object SuperAdminNotes : Routes("superAdminNotes")
+    data object SalesHistory : Routes("history")
+    data object GeminiChat : Routes("gemini") // ✅ Nueva ruta para el Asistente Gemini
 
     data object RouteDetail : Routes("routeDetail?saleId={saleId}") {
         fun create(saleId: String) = "routeDetail?saleId=$saleId"

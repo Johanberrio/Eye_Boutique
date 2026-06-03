@@ -19,11 +19,7 @@ class AppContainer(context: Context) {
     
     // ✅ Repositorio de Gemini (Obtén la API KEY de BuildConfig o variables de entorno)
     val geminiRepository: GeminiRepository by lazy {
-        val apiKey = com.example.lentespro.BuildConfig.GEMINI_API_KEY
-        if (apiKey.isEmpty() || apiKey == "YOUR_API_KEY_HERE") {
-            throw IllegalStateException("Gemini API Key no está configurada. Verifica BuildConfig o variables de entorno.")
-        }
-        GeminiRepository(apiKey = apiKey)
+        GeminiRepository(apiKey = "TU_CLAVE_AQUI")
     }
 
     val biometricPrefs = BiometricPrefs(context)

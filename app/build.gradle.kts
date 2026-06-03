@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.lentespro"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "4.0"
+        versionCode = 7
+        versionName = "5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -62,6 +62,7 @@ dependencies {
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation(libs.guava.core)
     implementation(libs.guava.listenablefuture)
+    implementation("com.google.firebase:firebase-messaging")
     
     implementation(libs.androidx.datastore.preferences)
     
@@ -90,6 +91,9 @@ dependencies {
     implementation(libs.google.ai.client)
     
     implementation(libs.coil.compose)
+
+    // ✅ WorkManager para notificaciones en segundo plano
+    implementation(libs.androidx.work.runtime.ktx)
 }
 
 kapt {

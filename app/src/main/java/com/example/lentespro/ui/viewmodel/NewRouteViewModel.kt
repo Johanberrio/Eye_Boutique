@@ -1,11 +1,16 @@
 package com.example.lentespro.ui.viewmodel
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.lentespro.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.InputStream
 
 data class RouteCartLine(
     val productId: String,
@@ -29,6 +34,7 @@ data class NewRouteUiState(
     val products: List<ProductEntity> = emptyList(),
     val cart: List<RouteCartLine> = emptyList(),
     val isSaving: Boolean = false,
+    val isAnalyzing: Boolean = false,
     val error: String? = null,
     val messengerOptions: List<String> = emptyList(),
     val autoFillText: String = ""
@@ -37,12 +43,14 @@ data class NewRouteUiState(
 sealed class NewRouteEvent {
     data class Error(val message: String) : NewRouteEvent()
     data class Success(val saleId: String) : NewRouteEvent()
+    data class Info(val message: String) : NewRouteEvent()
 }
 
 class NewRouteViewModel(
     private val productRepo: ProductRepository,
     private val saleRepo: SaleRepository,
-    private val messengerRepo: MessengerRepository
+    private val messengerRepo: MessengerRepository,
+    private val geminiRepo: GeminiRepository
 ) : ViewModel() {
 
     private val searchQuery = MutableStateFlow("")
@@ -72,13 +80,50 @@ class NewRouteViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun setMessengerName(v: String) = _ui.update { it.copy(messengerName = v) }
-    fun setNotes(v: String) = _ui.update { it.copy(notes = v) }
-    fun setSearch(v: String) {
-        _ui.update { it.copy(search = v) }
-        searchQuery.value = v
+    fun analyzeCustomerImage(uri: Uri, context: Context) {
+        viewModelScope.launch {
+            _ui.update { it.copy(isAnalyzing = true) }
+            try {
+                // 1. Cargar y optimizar imagen
+                val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                val bitmap = Bitmap.createScaledBitmap(originalBitmap, 1024, (originalBitmap.height * (1024.0 / originalBitmap.width)).toInt(), true)
+
+                val prompt = """
+                    Analiza esta imagen y extrae los datos del cliente para una entrega.
+                    Devuelve estrictamente este formato:
+                    NOMBRE: [valor]
+                    TEL: [valor]
+                    DIR: [valor]
+                    BARRIO: [valor]
+                """.trimIndent()
+
+                val response = geminiRepo.analyzeImage(prompt, bitmap)
+                
+                // ✅ Extractor robusto con Regex
+                fun extract(key: String): String {
+                    val pattern = Regex("(?i)$key[:\\s\\*]+(.*?)(?:\\r?\\n|$)", RegexOption.MULTILINE)
+                    return pattern.find(response)?.groupValues?.get(1)?.replace("*", "")?.trim() ?: ""
+                }
+
+                _ui.update { it.copy(
+                    customerName = extract("NOMBRE").ifBlank { it.customerName },
+                    customerPhone1 = extract("TEL").ifBlank { it.customerPhone1 },
+                    customerAddress = extract("DIR").ifBlank { it.customerAddress },
+                    customerNeighborhood = extract("BARRIO").ifBlank { it.customerNeighborhood }
+                ) }
+                _events.emit(NewRouteEvent.Info("Datos del cliente cargados ✨"))
+            } catch (e: Exception) {
+                _events.emit(NewRouteEvent.Error("No se pudo leer la imagen."))
+            } finally {
+                _ui.update { it.copy(isAnalyzing = false) }
+            }
+        }
     }
 
+    fun setMessengerName(v: String) = _ui.update { it.copy(messengerName = v) }
+    fun setNotes(v: String) = _ui.update { it.copy(notes = v) }
+    fun setSearch(v: String) { _ui.update { it.copy(search = v) }; searchQuery.value = v }
     fun setCustomerName(v: String) = _ui.update { it.copy(customerName = v) }
     fun setCustomerPhone1(v: String) = _ui.update { it.copy(customerPhone1 = v) }
     fun setCustomerPhone2(v: String) = _ui.update { it.copy(customerPhone2 = v) }
@@ -89,91 +134,17 @@ class NewRouteViewModel(
     fun processAutoFill() {
         val raw = _ui.value.autoFillText
         if (raw.isBlank()) return
-
         val lines = raw.lines().map { it.trim() }.filter { it.isNotBlank() }
         if (lines.isEmpty()) return
-
-        var foundName = ""
-        var foundPhone = ""
-        var foundAddr = ""
-        var foundNeigh = ""
-
-        val addrKeywords = listOf("carrera", "cra", "calle", "cl", "diagonal", "dg", "transversal", "tv", "avenida", "av", "#")
-        val extraAddrKeywords = listOf("interior", "int", "apto", "apartamento", "piso", "casa", "torre", "bloque", "local", "conjunto", "unidad")
-
-        val used = mutableSetOf<Int>()
-
-        // 1. Teléfono
-        val phoneIdx = lines.indexOfFirst { line ->
-            val digits = line.filter { it.isDigit() }
-            digits.length in 7..15 && line.count { it.isLetter() } < 5
-        }
-        if (phoneIdx != -1) {
-            foundPhone = lines[phoneIdx]
-            used.add(phoneIdx)
-        }
-
-        // 2. Dirección y Barrio
-        val addrIdx = lines.indexOfFirst { line ->
-            if (used.contains(lines.indexOf(line))) return@indexOfFirst false
-            val lower = line.lowercase()
-            addrKeywords.any { kw -> lower.startsWith("$kw ") || lower.contains(" $kw ") || lower.contains("$kw#") } || 
-            lower.contains(Regex("""\d+[a-zA-Z]?\s*#\s*\d+"""))
-        }
-
-        if (addrIdx != -1) {
-            val rawAddrLine = lines[addrIdx]
-            used.add(addrIdx)
-            
-            // Regex para detectar el final de la numeración (ej: #39-64 o a 21)
-            val houseNumPattern = Regex("""(\d+[a-zA-Z]?\s*(?:#|-|a|bis|#|–|—|a)\s*\d+[a-zA-Z]?)""", RegexOption.IGNORE_CASE)
-            val matches = houseNumPattern.findAll(rawAddrLine).toList()
-            val lastMatch = matches.lastOrNull()
-            
-            if (lastMatch != null) {
-                val endOfHouseNum = lastMatch.range.last + 1
-                foundAddr = rawAddrLine.substring(0, endOfHouseNum).trim()
-                val tail = rawAddrLine.substring(endOfHouseNum).trim()
-                
-                if (tail.length > 2) {
-                    val tailLower = tail.lowercase()
-                    if (extraAddrKeywords.any { tailLower.contains(it) || tailLower.startsWith("int") }) {
-                        foundAddr = rawAddrLine
-                    } else {
-                        foundNeigh = tail
-                    }
-                }
-            } else {
-                foundAddr = rawAddrLine
-            }
-
-            // Buscar en líneas siguientes (Extras o Barrio)
-            var current = addrIdx + 1
-            while (current < lines.size) {
-                if (used.contains(current)) { current++; continue }
-                val line = lines[current]
-                val lower = line.lowercase()
-                if (extraAddrKeywords.any { lower.contains(it) } || lower.contains(Regex("""\b(int|apto|piso|local|torre|bloque|casa)\b"""))) {
-                    foundAddr += " - $line"
-                    used.add(current); current++
-                } else if (foundNeigh.isBlank() && line.length in 3..50 && line.count { it.isDigit() } < 6) {
-                    foundNeigh = line
-                    used.add(current); break
-                } else break
-            }
-        }
-
-        // 3. Nombre
-        val nameIdx = lines.indices.firstOrNull { idx -> !used.contains(idx) && lines[idx].count { it.isLetter() } > 3 }
+        var foundName = ""; var foundPhone = ""; var foundAddr = ""
+        val phoneIdx = lines.indexOfFirst { l -> l.filter { it.isDigit() }.length in 7..15 }
+        if (phoneIdx != -1) foundPhone = lines[phoneIdx]
+        val addrKeywords = listOf("calle", "cl", "cra", "carrera", "diagonal", "dg", "#")
+        val addrIdx = lines.indexOfFirst { l -> addrKeywords.any { l.lowercase().contains(it) } }
+        if (addrIdx != -1) foundAddr = lines[addrIdx]
+        val nameIdx = lines.indices.firstOrNull { it != phoneIdx && it != addrIdx && lines[it].length > 3 }
         if (nameIdx != null) foundName = lines[nameIdx]
-
-        _ui.update { it.copy(
-            customerName = foundName.ifBlank { it.customerName },
-            customerPhone1 = foundPhone.ifBlank { it.customerPhone1 },
-            customerAddress = foundAddr.ifBlank { it.customerAddress },
-            customerNeighborhood = foundNeigh.ifBlank { it.customerNeighborhood },
-            autoFillText = "" 
-        ) }
+        _ui.update { it.copy(customerName = foundName, customerPhone1 = foundPhone, customerAddress = foundAddr, autoFillText = "") }
     }
 
     fun addToCart(p: ProductEntity) {
@@ -195,18 +166,11 @@ class NewRouteViewModel(
     fun dispatchToRoute() {
         viewModelScope.launch {
             val state = _ui.value
-            if (state.cart.isEmpty()) {
-                _events.emit(NewRouteEvent.Error("Agrega al menos un producto."))
-                return@launch
-            }
+            if (state.cart.isEmpty()) { _events.emit(NewRouteEvent.Error("Agrega al menos un producto.")); return@launch }
             _ui.update { it.copy(isSaving = true) }
             try {
                 val items = state.cart.map { CreateRouteItem(it.productId, it.unitPrice, it.quantity) }
-                val saleId = saleRepo.createRouteDispatch(
-                    state.messengerName, state.notes, items, state.customerName, 
-                    state.customerPhone1, state.customerPhone2.ifBlank { null }, 
-                    state.customerAddress, state.customerNeighborhood
-                )
+                val saleId = saleRepo.createRouteDispatch(state.messengerName, state.notes, items, state.customerName, state.customerPhone1, state.customerPhone2.ifBlank { null }, state.customerAddress, state.customerNeighborhood)
                 _events.emit(NewRouteEvent.Success(saleId))
                 _ui.value = NewRouteUiState(messengerOptions = state.messengerOptions)
             } catch (e: Exception) {
@@ -220,9 +184,9 @@ class NewRouteViewModel(
 class NewRouteViewModelFactory(
     private val productRepo: ProductRepository,
     private val saleRepo: SaleRepository,
-    private val messengerRepo: MessengerRepository
+    private val messengerRepo: MessengerRepository,
+    private val geminiRepo: GeminiRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        NewRouteViewModel(productRepo, saleRepo, messengerRepo) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = NewRouteViewModel(productRepo, saleRepo, messengerRepo, geminiRepo) as T
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.lentespro.util.Formatters
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -38,11 +39,12 @@ class ProductRepository(
     }
 
     /**
-     * ✅ Obtener todos los productos una sola vez (Útil para análisis de Gemini)
+     * ✅ Obtener todos los productos (con opción de forzar servidor para notificaciones)
      */
-    suspend fun getAllOnce(): List<ProductEntity> {
+    suspend fun getAllOnce(fromServer: Boolean = false): List<ProductEntity> {
         return try {
-            val snapshot = collection.get().await()
+            val source = if (fromServer) Source.SERVER else Source.DEFAULT
+            val snapshot = collection.get(source).await()
             snapshot.documents.mapNotNull { it.toObject(ProductEntity::class.java) }
         } catch (e: Exception) {
             emptyList()

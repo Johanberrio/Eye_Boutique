@@ -127,7 +127,7 @@ fun DashboardScreen(
             ) {
                 Icon(Icons.Default.Inventory2, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Ir a Inventario")
+                Text("Inventario")
             }
 
             Button(

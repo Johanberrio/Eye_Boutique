@@ -7,10 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,8 +37,6 @@ fun InventoryScreen(
 ) {
     val products by inventoryViewModel.products.collectAsState()
     var query by remember { mutableStateOf("") }
-    
-    // ✅ Estado para el visor de imagen a pantalla completa
     var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -59,30 +54,26 @@ fun InventoryScreen(
                         Spacer(Modifier.width(4.dp))
                         Text("Lista Nueva")
                     }
-                    if (isAdmin) {
-                        IconButton(onClick = onAddProduct) {
-                            Icon(Icons.Default.Add, contentDescription = "Agregar")
-                        }
-                    }
                 }
             )
+        },
+        floatingActionButton = {
+            if (isAdmin) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Botón de Agregar
+                    FloatingActionButton(onClick = onAddProduct) {
+                        Icon(Icons.Default.Add, contentDescription = "Agregar producto")
+                    }
+                }
+            }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             OutlinedTextField(
                 value = query,
-                onValueChange = {
-                    query = it
-                    inventoryViewModel.setSearchQuery(it)
-                },
+                onValueChange = { query = it; inventoryViewModel.setSearchQuery(it) },
                 label = { Text("Buscar (nombre/marca/tipo)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
             )
 
             LazyColumn(
@@ -97,14 +88,13 @@ fun InventoryScreen(
                         isSuperAdmin = isSuperAdmin,
                         onClick = { if (isAdmin) onEditProduct(product.id) },
                         onDelete = { inventoryViewModel.delete(product) },
-                        onImageClick = { fullScreenImageUrl = it } // ✅ Abrir visor
+                        onImageClick = { fullScreenImageUrl = it }
                     )
                 }
             }
         }
     }
 
-    // ✅ Visor de imagen a pantalla completa
     fullScreenImageUrl?.let { url ->
         FullScreenImageDialog(url = url, onDismiss = { fullScreenImageUrl = null })
     }
@@ -118,35 +108,31 @@ private fun ProductCard(
     isSuperAdmin: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onImageClick: (String) -> Unit // ✅ Callback para la imagen
+    onImageClick: (String) -> Unit
 ) {
     val lowStock = product.cantidad <= product.stockMinimo
     val stockColor = if (lowStock) Color(0xFFB00020) else MaterialTheme.colorScheme.primary
 
     Card(onClick = onClick, enabled = isAdmin) {
-        Row(
-            modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 🖼️ Miniatura de la imagen
-            AsyncImage(
-                model = product.imageUrl, // Puede ser null
-                contentDescription = product.nombre,
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { product.imageUrl?.let { onImageClick(it) } },
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(Modifier.weight(1f)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    // Miniatura
+                    if (product.imageUrl != null) {
+                        AsyncImage(
+                            model = product.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { onImageClick(product.imageUrl!!) },
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(Modifier.width(12.dp))
+                    }
+                    
+                    Column {
                         Text(
                             text = "${product.nombre} (${product.marca})",
                             style = MaterialTheme.typography.titleMedium,
@@ -157,54 +143,39 @@ private fun ProductCard(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
+                }
 
-                    if (isSuperAdmin) {
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar")
-                        }
+                if (isSuperAdmin) {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                     }
                 }
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        text = "Stock: ${product.cantidad}",
-                        color = stockColor,
-                        fontWeight = if (lowStock) FontWeight.Bold else FontWeight.Normal
-                    )
-                    Text("Venta: ${Formatters.money(product.precioVenta)}")
-                }
-
-                val extra = buildString {
-                    if (product.diametro != null) append("DIA: ${product.diametro}")
-                    if (product.potenciaEsferica != 0.0) append(" SPH: ${product.potenciaEsferica}")
-                }.trim()
-                if (extra.isNotBlank()) {
-                    Text(extra, style = MaterialTheme.typography.bodySmall)
-                }
             }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = "Stock: ${product.cantidad} (mín: ${product.stockMinimo})",
+                    color = stockColor,
+                    fontWeight = if (lowStock) FontWeight.Bold else FontWeight.Normal
+                )
+                Text("Venta: ${Formatters.money(product.precioVenta)}")
+            }
+
+            val extra = buildString {
+                if (product.diametro != null) append(" DIA: ${product.diametro}")
+                if (product.potenciaEsferica != 0.0) append(" SPH: ${product.potenciaEsferica}")
+            }.trim()
+            if (extra.isNotBlank()) Text(extra, style = MaterialTheme.typography.bodySmall)
+
         }
     }
 }
 
 @Composable
 private fun FullScreenImageDialog(url: String, onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .clickable { onDismiss() },
-            contentAlignment = Alignment.Center
-        ) {
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black).clickable { onDismiss() }, contentAlignment = Alignment.Center) {
+            AsyncImage(model = url, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
         }
     }
 }

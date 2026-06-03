@@ -1,22 +1,19 @@
 package com.example.lentespro.ui.viewmodel
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.lentespro.data.AdminNotesRepository
-import com.example.lentespro.data.AuthProfileRepository
-import com.example.lentespro.data.ProductEntity
-import com.example.lentespro.data.ProductRepository
+import com.example.lentespro.data.*
 import com.example.lentespro.util.Formatters
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.InputStream
 import java.util.UUID
 
 data class EditProductUiState(
@@ -36,7 +33,7 @@ data class EditProductUiState(
     val imageUrl: String? = null,
     val selectedImageUri: Uri? = null,
     val isLoading: Boolean = false,
-    val isScanning: Boolean = false
+    val isAnalyzing: Boolean = false
 )
 
 sealed class EditProductEvent {
@@ -49,6 +46,7 @@ class EditProductViewModel(
     private val repo: ProductRepository,
     private val adminNotesRepo: AdminNotesRepository,
     private val authProfileRepo: AuthProfileRepository,
+    private val geminiRepo: GeminiRepository,
     private val productId: String
 ) : ViewModel() {
 
@@ -80,16 +78,72 @@ class EditProductViewModel(
         _uiState.update(block)
     }
 
-    fun setScanning(enabled: Boolean) {
-        _uiState.update { it.copy(isScanning = enabled) }
-    }
-
     fun onImageSelected(uri: Uri?) {
         _uiState.update { it.copy(selectedImageUri = uri) }
     }
 
+    fun analyzeProductImage(uri: Uri, context: Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzing = true) }
+            try {
+                // 1. Cargar y optimizar imagen (Evita colapso de memoria RAM)
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                val ratio = 1024.0 / originalBitmap.width
+                val height = (originalBitmap.height * ratio).toInt()
+                val bitmap = Bitmap.createScaledBitmap(originalBitmap, 1024, height, true)
+
+                // ✅ PROMPT EXPERTO: Le enseñamos a la IA a leer tu etiqueta específica
+                val prompt = """
+                    Analiza esta etiqueta de lentes de contacto. Extrae los datos y devuelve ÚNICAMENTE este formato exacto línea por línea (sin markdown). 
+                    Reglas estrictas para encontrar los datos en esta etiqueta:
+                    - NOMBRE: El texto más grande en la parte superior (ej: ESTONIA GRAY) o el texto debajo del código QR.
+                    - COLOR: Si el NOMBRE incluye un color (ej: Gray, Blue, Brown), ponlo aquí traducido al español.
+                    - ESFERA: El número que aparece junto a "F'v:" o que termina con la letra "D" (Devuelve SOLO el número, ej: 0.00 o -2.50).
+                    - DIAMETRO: El número que aparece junto al símbolo "⌀T:" (Devuelve SOLO el número, ej: 14.50).
+                    - LOTE: El código alfanumérico que aparece junto a la palabra "LOT:".
+                    - CADUCIDAD: La fecha que aparece junto al icono del reloj de arena (Formato AAAA-MM-DD). Ignora la fecha con el icono de fábrica.
+
+                    Formato de respuesta obligatorio:
+                    NOMBRE: [valor]
+                    COLOR: [valor]
+                    ESFERA: [valor]
+                    DIAMETRO: [valor]
+                    LOTE: [valor]
+                    CADUCIDAD: [valor]
+                """.trimIndent()
+
+                val response = geminiRepo.analyzeImage(prompt, bitmap)
+
+                // ✅ Regex robusta para capturar los valores
+                fun extract(key: String): String {
+                    val pattern = Regex("(?i)$key[:\\s\\*]+(.*?)(?:\\r?\\n|$)", RegexOption.MULTILINE)
+                    return pattern.find(response)?.groupValues?.get(1)?.replace("*", "")?.trim() ?: ""
+                }
+
+                _uiState.update { it.copy(
+                    nombre = extract("NOMBRE").ifBlank { it.nombre },
+                    marca = extract("MARCA").ifBlank { it.marca },
+                    color = extract("COLOR").ifBlank { it.color },
+
+                    // Limpiamos "D" o "mm" extra por si la IA es terca y los incluye
+                    potenciaEsferica = extract("ESFERA").replace("D", "", ignoreCase = true).trim().ifBlank { it.potenciaEsferica },
+                    diametro = extract("DIAMETRO").replace("mm", "", ignoreCase = true).trim().ifBlank { it.diametro },
+
+                    lote = extract("LOTE").ifBlank { it.lote },
+                    fechaCaducidad = extract("CADUCIDAD").ifBlank { it.fechaCaducidad }
+                ) }
+                _events.emit(EditProductEvent.ShowSuccess("Datos extraídos correctamente ✨"))
+
+            } catch (e: Exception) {
+                _events.emit(EditProductEvent.ShowError("Error IA: ${e.message ?: "Fallo desconocido"}"))
+            } finally {
+                _uiState.update { it.copy(isAnalyzing = false) }
+            }
+        }
+    }
+
     private suspend fun uploadImage(uri: Uri): String {
-        // Esta función ahora lanza excepciones para que save() pueda capturarlas y mostrarlas
         val fileName = "products/${UUID.randomUUID()}.jpg"
         val ref = storage.reference.child(fileName)
         ref.putFile(uri).await()
@@ -103,31 +157,18 @@ class EditProductViewModel(
                 _events.emit(EditProductEvent.ShowError("Nombre y marca son obligatorios."))
                 return@launch
             }
-
             _uiState.update { it.copy(isLoading = true) }
-
             try {
-                // 1. Subir imagen si hay una nueva seleccionada
-                var finalImageUrl = state.imageUrl
-                state.selectedImageUri?.let { uri ->
-                    try {
-                        finalImageUrl = uploadImage(uri)
-                    } catch (e: Exception) {
-                        Log.e("LentesPro", "Error subiendo imagen", e)
-                        _events.emit(EditProductEvent.ShowError("Fallo al subir imagen: ${e.localizedMessage}"))
-                        _uiState.update { it.copy(isLoading = false) }
-                        return@launch // Detenemos el guardado si falla la imagen
-                    }
-                }
+                var finalUrl = state.imageUrl
+                state.selectedImageUri?.let { uri -> finalUrl = uploadImage(uri) }
 
-                // 2. Crear y guardar la entidad
                 val entity = ProductEntity(
                     id = if (productId == "new") "" else productId,
                     nombre = Formatters.normalize(state.nombre),
                     marca = Formatters.normalize(state.marca),
                     color = Formatters.normalize(state.color),
                     tipo = state.tipo.trim(),
-                    imageUrl = finalImageUrl, // ✅ Se guarda la URL final
+                    imageUrl = finalUrl,
                     potenciaEsferica = state.potenciaEsferica.replace(',', '.').toDoubleOrNull() ?: 0.0,
                     diametro = state.diametro.replace(',', '.').toDoubleOrNull(),
                     cantidad = state.cantidad.toIntOrNull() ?: 0,
@@ -138,77 +179,29 @@ class EditProductViewModel(
                     notas = state.notas.trim().ifBlank { null },
                     actualizadoEnEpochMillis = System.currentTimeMillis()
                 )
-
                 repo.upsert(entity)
-
-                // Borrar lista informativa si es SuperAdmin
-                if (authProfileRepo.isSuperAdmin()) {
-                    adminNotesRepo.updateNotes("") 
-                }
-
+                if (authProfileRepo.isSuperAdmin()) adminNotesRepo.updateNotes("") 
                 _events.emit(EditProductEvent.ShowSuccess("Producto guardado ✅"))
                 _events.emit(EditProductEvent.NavigateBack)
             } catch (e: Exception) {
-                Log.e("LentesPro", "Error al guardar producto", e)
-                _events.emit(EditProductEvent.ShowError("Error al guardar: ${e.localizedMessage}"))
+                _events.emit(EditProductEvent.ShowError("Error al guardar."))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
-    private fun ProductEntity.toUiState(): EditProductUiState {
-        return EditProductUiState(
-            id = id,
-            nombre = nombre,
-            marca = marca,
-            color = color,
-            tipo = tipo,
-            imageUrl = imageUrl, // ✅ Recuperamos la imagen guardada
-            potenciaEsferica = if (potenciaEsferica == 0.0) "" else potenciaEsferica.toString(),
-            diametro = diametro?.toString() ?: "",
-            cantidad = cantidad.toString(),
-            stockMinimo = stockMinimo.toString(),
-            precioVenta = precioVenta.toString(),
-            fechaCaducidad = if (fechaCaducidadEpochMillis == null) "" else Formatters.epochMillisToDateText(fechaCaducidadEpochMillis),
-            lote = lote.orEmpty(),
-            notas = notas.orEmpty(),
-            isLoading = false
-        )
-    }
-
-    fun onTextScanned(rawText: String) {
-        val fullText = rawText.replace("\n", " ").replace("\r", " ")
-        var foundLote = ""; var foundExp = ""; var foundDia = ""; var foundSph = ""
-        val loteRegex = Regex("""(?i)(?:LOT|LOTE|L)[:\s]*([A-Z0-9-]+)""")
-        val expRegex = Regex("""(?i)(?:EXP|VENCE|CAD)[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}/\d{4}|\d{2}-\d{4})""")
-        val diaRegex = Regex("""(?i)(?:DIA|DIAM)[:\s]*(1[34][.,]\d)""")
-        val sphRegex = Regex("""(?i)(?:PWR|SPH|ESF|D|P)[:\s]*([+-]\d{1,2}[.,]\d{2})""")
-        loteRegex.find(fullText)?.let { foundLote = it.groupValues[1] }
-        expRegex.find(fullText)?.let { foundExp = it.groupValues[1] }
-        diaRegex.find(fullText)?.let { foundDia = it.groupValues[1] }
-        sphRegex.find(fullText)?.let { foundSph = it.groupValues[1] }
-        if (foundDia.isBlank()) Regex("""\b(1[34][.,][0-9])\b""").find(fullText)?.let { foundDia = it.groupValues[1] }
-        if (foundSph.isBlank()) Regex("""\b([+-]\d[.,]\d{2})\b""").find(fullText)?.let { foundSph = it.groupValues[1] }
-        _uiState.update { state ->
-            state.copy(
-                lote = foundLote.ifBlank { state.lote },
-                fechaCaducidad = if (foundExp.isNotBlank()) normalizeDate(foundExp) else state.fechaCaducidad,
-                diametro = foundDia.replace(",", ".").ifBlank { state.diametro },
-                potenciaEsferica = foundSph.replace(",", ".").ifBlank { state.potenciaEsferica }
-            )
-        }
-    }
-
-    private fun normalizeDate(date: String): String {
-        return when {
-            date.contains("/") -> {
-                val parts = date.split("/"); if (parts.size == 2) "${parts[1]}-${parts[0]}-01" else date
-            }
-            date.contains("-") && date.length == 7 -> {
-                val parts = date.split("-"); "${parts[1]}-${parts[0]}-01"
-            }
-            else -> date
-        }
-    }
+    private fun ProductEntity.toUiState() = EditProductUiState(
+        id = id, nombre = nombre, marca = marca, color = color, tipo = tipo,
+        imageUrl = imageUrl,
+        potenciaEsferica = if (potenciaEsferica == 0.0) "" else potenciaEsferica.toString(),
+        diametro = diametro?.toString() ?: "",
+        cantidad = cantidad.toString(),
+        stockMinimo = stockMinimo.toString(),
+        precioVenta = precioVenta.toString(),
+        fechaCaducidad = if (fechaCaducidadEpochMillis == null) "" else Formatters.epochMillisToDateText(fechaCaducidadEpochMillis),
+        lote = lote.orEmpty(),
+        notas = notas.orEmpty(),
+        isLoading = false
+    )
 }

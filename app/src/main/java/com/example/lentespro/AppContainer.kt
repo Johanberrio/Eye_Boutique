@@ -19,7 +19,7 @@ class AppContainer(context: Context) {
     
     // ✅ Repositorio de Gemini (Asegúrate de poner tu API KEY real aquí)
     val geminiRepository: GeminiRepository by lazy {
-        GeminiRepository(apiKey = "AIzaSyA7lvzdgqjUi2myl96QvT08JLlAOQqnOqQ")
+        GeminiRepository(apiKey = "TU_CLAVE_AQUI")
     }
 
     val biometricPrefs = BiometricPrefs(context)

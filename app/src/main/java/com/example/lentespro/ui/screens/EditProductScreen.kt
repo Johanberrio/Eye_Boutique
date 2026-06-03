@@ -1,15 +1,8 @@
 package com.example.lentespro.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.util.Log
-import android.view.ViewGroup
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,26 +15,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.example.lentespro.ui.viewmodel.EditProductEvent
 import com.example.lentespro.ui.viewmodel.EditProductViewModel
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import androidx.compose.foundation.text.KeyboardOptions
-import java.util.concurrent.Executors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,17 +36,18 @@ fun EditProductScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    // ✅ Launcher para seleccionar imagen de la galería
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    // ✅ Launcher para Gemini: Analizar caja de lentes desde foto
+    val geminiImagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        viewModel.onImageSelected(uri)
+    ) { uri: Uri? ->
+        uri?.let { viewModel.analyzeProductImage(it, context) }
     }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) viewModel.setScanning(true)
+    // Launcher para la foto del producto (Galería normal)
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        viewModel.onImageSelected(uri)
     }
 
     LaunchedEffect(Unit) {
@@ -86,19 +70,20 @@ fun EditProductScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        val permission = Manifest.permission.CAMERA
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                permission
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            viewModel.setScanning(true)
+                    // ✨ BOTÓN DE GEMINI (IA Multimodal)
+                    IconButton(
+                        onClick = { geminiImagePicker.launch("image/*") },
+                        enabled = !state.isAnalyzing
+                    ) {
+                        if (state.isAnalyzing) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         } else {
-                            cameraPermissionLauncher.launch(permission)
+                            Icon(
+                                Icons.Default.AutoAwesome, 
+                                contentDescription = "Llenar con Gemini AI",
+                                tint = Color(0xFF673AB7) // Color violeta IA
+                            )
                         }
-                    }) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = "Escanear caja")
                     }
                     IconButton(onClick = { viewModel.save() }) {
                         Icon(Icons.Default.Save, contentDescription = "Guardar")
@@ -149,15 +134,8 @@ fun EditProductScreen(
                         }
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.AddPhotoAlternate,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Text(
-                                "Añadir foto del lente",
-                                style = MaterialTheme.typography.labelMedium
-                            )
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(48.dp))
+                            Text("Añadir foto del lente", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -184,7 +162,6 @@ fun EditProductScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-
             SectionTitle("Parámetros Ópticos")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -194,99 +171,73 @@ fun EditProductScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
                 )
-            }
                 OutlinedTextField(
                     value = state.diametro,
                     onValueChange = { v -> viewModel.update { it.copy(diametro = v) } },
                     label = { Text("Diámetro (mm)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.weight(1f)
                 )
+            }
 
-
-                SectionTitle("Inventario y precios")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = state.cantidad,
-                        onValueChange = { v -> viewModel.update { it.copy(cantidad = v) } },
-                        label = { Text("Cantidad") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = state.stockMinimo,
-                        onValueChange = { v -> viewModel.update { it.copy(stockMinimo = v) } },
-                        label = { Text("Stock mínimo") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = state.precioVenta,
-                        onValueChange = { v -> viewModel.update { it.copy(precioVenta = v) } },
-                        label = { Text("Precio venta") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                SectionTitle("Caducidad y notas")
+            SectionTitle("Inventario y precios")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
-                    value = state.fechaCaducidad,
-                    onValueChange = { v -> viewModel.update { it.copy(fechaCaducidad = v) } },
-                    label = { Text("Caducidad (yyyy-MM-dd) - opcional") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = state.cantidad,
+                    onValueChange = { v -> viewModel.update { it.copy(cantidad = v) } },
+                    label = { Text("Cantidad") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
                 )
-
                 OutlinedTextField(
-                    value = state.lote,
-                    onValueChange = { v -> viewModel.update { it.copy(lote = v) } },
-                    label = { Text("Lote - opcional") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = state.stockMinimo,
+                    onValueChange = { v -> viewModel.update { it.copy(stockMinimo = v) } },
+                    label = { Text("Stock mínimo") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
                 )
+            }
+            OutlinedTextField(
+                value = state.precioVenta,
+                onValueChange = { v -> viewModel.update { it.copy(precioVenta = v) } },
+                label = { Text("Precio venta") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                OutlinedTextField(
-                    value = state.notas,
-                    onValueChange = { v -> viewModel.update { it.copy(notas = v) } },
-                    label = { Text("Notas - opcional") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
-                )
+            SectionTitle("Caducidad y notas")
+            OutlinedTextField(
+                value = state.fechaCaducidad,
+                onValueChange = { v -> viewModel.update { it.copy(fechaCaducidad = v) } },
+                label = { Text("Caducidad (yyyy-MM-dd)") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Button(
-                    onClick = { viewModel.save() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Guardar")
-                }
+            OutlinedTextField(
+                value = state.lote,
+                onValueChange = { v -> viewModel.update { it.copy(lote = v) } },
+                label = { Text("Lote") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = state.notas,
+                onValueChange = { v -> viewModel.update { it.copy(notas = v) } },
+                label = { Text("Notas - opcional") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
+
+            Button(
+                onClick = { viewModel.save() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Guardar")
             }
         }
     }
-
-
-
-
-
-@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
-private fun processImageProxy(
-    recognizer: com.google.mlkit.vision.text.TextRecognizer,
-    imageProxy: ImageProxy,
-    onTextDetected: (String) -> Unit
-) {
-    val mediaImage = imageProxy.image
-    if (mediaImage != null) {
-        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-        recognizer.process(image)
-            .addOnSuccessListener { visionText ->
-                if (visionText.text.isNotBlank() && visionText.text.contains(Regex("""\d"""))) {
-                    onTextDetected(visionText.text)
-                }
-            }
-            .addOnCompleteListener { imageProxy.close() }
-    } else imageProxy.close()
 }
 
 @Composable

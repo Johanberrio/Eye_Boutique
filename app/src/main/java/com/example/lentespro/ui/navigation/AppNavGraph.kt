@@ -93,7 +93,7 @@ fun AppNavGraph(
                 onGoToRoutes = { navController.navigate(Routes.RoutesList.route) },
                 onGoToMessengers = { navController.navigate(Routes.Messengers.route) },
                 onGoToHistory = { navController.navigate(Routes.SalesHistory.route) },
-                onGoToGemini = { navController.navigate(Routes.GeminiChat.route) }, // ✅ Corregido
+                onGoToGemini = { navController.navigate(Routes.GeminiChat.route) },
                 isAdmin = isAdmin,
                 onGoToAdminUsers = { navController.navigate(Routes.AdminUsers.route) },
                 onLogout = { 
@@ -185,6 +185,7 @@ fun AppNavGraph(
                     repo = container.productRepository,
                     adminNotesRepo = container.adminNotesRepository,
                     authProfileRepo = container.authProfileRepository,
+                    geminiRepo = container.geminiRepository,
                     productId = productId
                 )
             )
@@ -204,7 +205,8 @@ fun AppNavGraph(
                 factory = NewRouteViewModelFactory(
                     productRepo = container.productRepository,
                     saleRepo = container.saleRepository,
-                    messengerRepo = container.messengerRepository
+                    messengerRepo = container.messengerRepository,
+                    geminiRepo = container.geminiRepository // ✅ Se añadió el parámetro faltante
                 )
             )
             NewRouteScreen(

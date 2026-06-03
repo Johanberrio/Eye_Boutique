@@ -17,7 +17,7 @@ class AppContainer(context: Context) {
     val messengerRepository: MessengerRepository by lazy { MessengerRepository(firestore) }
     val adminNotesRepository: AdminNotesRepository by lazy { AdminNotesRepository(firestore) }
     
-    // ✅ Repositorio de Gemini (Asegúrate de poner tu API KEY real aquí)
+    // ✅ Repositorio de Gemini (Obtén la API KEY de BuildConfig o variables de entorno)
     val geminiRepository: GeminiRepository by lazy {
         GeminiRepository(apiKey = "TU_CLAVE_AQUI")
     }

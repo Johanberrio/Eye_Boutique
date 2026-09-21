@@ -78,7 +78,8 @@ class SaleRepository(
                 SaleItemEntity(
                     productId = item.productId,
                     productName = "${product.nombre} (${product.marca})",
-                    lensName = product.nombre, 
+                    lensName = product.nombre,
+                    isHalloween = product.isHalloween, 
                     unitPrice = item.unitPrice,
                     dispatchedQty = item.quantity
                 )

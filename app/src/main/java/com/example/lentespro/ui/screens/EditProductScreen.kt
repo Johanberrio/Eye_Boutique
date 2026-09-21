@@ -205,6 +205,21 @@ fun EditProductScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            SectionTitle("Etiquetas")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = state.isHalloween,
+                    onCheckedChange = { v -> viewModel.update { it.copy(isHalloween = v) } }
+                )
+                Text(
+                    text = "Es lente de Halloween \uD83C\uDF83",
+                    modifier = Modifier.clickable { viewModel.update { it.copy(isHalloween = !it.isHalloween) } }
+                )
+            }
+
             SectionTitle("Caducidad y notas")
             OutlinedTextField(
                 value = state.fechaCaducidad,

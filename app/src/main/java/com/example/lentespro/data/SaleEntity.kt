@@ -1,6 +1,7 @@
 package com.example.lentespro.data
 
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.PropertyName
 
 data class SaleEntity(
     @DocumentId val id: String = "",
@@ -25,6 +26,9 @@ data class SaleItemEntity(
     val productId: String = "",
     val productName: String = "",
     val lensName: String = "", // ✅ Nombre comercial (ej: Pattaya Blue)
+    @get:PropertyName("isHalloween")
+    @set:PropertyName("isHalloween")
+    var isHalloween: Boolean = false, // ✅ Para identificar que es de Halloween en las ventas
     val unitPrice: Double = 0.0,
     val dispatchedQty: Int = 0,
     val soldQty: Int? = null,

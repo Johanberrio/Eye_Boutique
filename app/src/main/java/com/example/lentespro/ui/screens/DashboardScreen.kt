@@ -39,6 +39,9 @@ fun DashboardScreen(
     
     val ventasPeriodoActualCount by inventoryViewModel.ventasPeriodoActualCount.collectAsState()
     val totalHistoricoVendido by inventoryViewModel.totalHistoricoVendido.collectAsState()
+    
+    val ventasHalloweenHoyCount by inventoryViewModel.ventasHalloweenHoyCount.collectAsState()
+    val ventasHalloweenPeriodoActualCount by inventoryViewModel.ventasHalloweenPeriodoActualCount.collectAsState()
 
     Scaffold(
         topBar = {
@@ -103,6 +106,10 @@ fun DashboardScreen(
                     Text("Lentes vendidos hoy 💰: $ventasHoyProductCount")
                     
                     Text("Lentes vendidos (mes actual) 🗓️: $ventasPeriodoActualCount")
+                    
+                    Text("Lentes Halloween hoy \uD83C\uDF83: $ventasHalloweenHoyCount")
+                    Text("Lentes Halloween (mes actual) \uD83C\uDF83: $ventasHalloweenPeriodoActualCount")
+                    
                     Text("Total histórico vendido 🏆: $totalHistoricoVendido")
 
                     Row(verticalAlignment = Alignment.CenterVertically) {

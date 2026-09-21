@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.lentespro.data.SaleRepository
+import com.example.lentespro.data.ProductRepository
 import com.example.lentespro.data.SaleStatus
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -13,6 +15,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 data class HistoryMonthEntry(
     val year: Int,
@@ -24,7 +27,10 @@ data class HistoryMonthEntry(
     val isOngoing: Boolean = false
 )
 
-class SalesHistoryViewModel(private val saleRepo: SaleRepository) : ViewModel() {
+class SalesHistoryViewModel(
+    private val saleRepo: SaleRepository,
+    private val productRepo: ProductRepository
+) : ViewModel() {
 
     private val zone = ZoneId.of("America/Bogota")
     private val referenceEndDate = LocalDate.of(2026, 5, 13)
@@ -38,8 +44,13 @@ class SalesHistoryViewModel(private val saleRepo: SaleRepository) : ViewModel() 
         (2026 to 1) to 435, (2026 to 2) to 238, (2026 to 3) to 248, (2026 to 4) to 326, (2026 to 5) to 296
     )
 
-    val historyEntries: StateFlow<List<HistoryMonthEntry>> = saleRepo.observeSales()
-        .map { sales ->
+    val historyEntries: StateFlow<List<HistoryMonthEntry>> = combine(
+        saleRepo.observeSales(),
+        productRepo.observeAll()
+    ) { sales, products ->
+        
+            val halloweenProductIds = products.filter { it.isHalloween }.map { it.id }.toSet()
+        
             val today = LocalDate.now(zone)
             val finalizedSales = sales.filter { it.status == SaleStatus.FINALIZADA }
 
@@ -56,9 +67,14 @@ class SalesHistoryViewModel(private val saleRepo: SaleRepository) : ViewModel() 
                 
                 val stats = dbStatsByPeriod.getOrPut(periodEndDate) { mutableMapOf() }
                 sale.items.forEach { item ->
-                    // Extraer nombre comercial (ej: de "Pattaya Blue (EyeShare)" a "Pattaya Blue")
-                    val lensName = item.lensName.ifBlank { item.productName.substringBefore(" (").trim() }
-                    stats[lensName] = (stats[lensName] ?: 0) + (item.soldQty ?: 0)
+                    // Extraer nombre comercial y normalizar a mayúsculas para evitar duplicados
+                    val rawName = item.lensName.ifBlank { item.productName.substringBefore(" (").trim() }
+                    val lensName = rawName.uppercase(Locale.getDefault())
+                    
+                    // ✅ AHORA COMPRUEBA EL CATÁLOGO ACTUAL PARA VER SI ES HALLOWEEN
+                    val finalName = if (item.productId in halloweenProductIds) "$lensName \uD83C\uDF83" else lensName
+                    
+                    stats[finalName] = (stats[finalName] ?: 0) + (item.soldQty ?: 0)
                 }
             }
 
@@ -95,6 +111,27 @@ class SalesHistoryViewModel(private val saleRepo: SaleRepository) : ViewModel() 
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // ✅ NUEVO: Estadísticas globales agrupadas por nombre
+    val globalNameStats: StateFlow<List<Pair<String, Int>>> = combine(
+        saleRepo.observeSales(),
+        productRepo.observeAll()
+    ) { sales, products ->
+        val halloweenProductIds = products.filter { it.isHalloween }.map { it.id }.toSet()
+        val nameCounts = mutableMapOf<String, Int>()
+
+        sales.filter { it.status == SaleStatus.FINALIZADA }.forEach { sale ->
+            sale.items.forEach { item ->
+                val rawName = item.lensName.ifBlank { item.productName.substringBefore(" (").trim() }
+                val lensName = rawName.uppercase(Locale.getDefault())
+                val finalName = if (item.productId in halloweenProductIds) "$lensName \uD83C\uDF83" else lensName
+                val sold = item.soldQty ?: 0
+                nameCounts[finalName] = (nameCounts[finalName] ?: 0) + sold
+            }
+        }
+
+        nameCounts.toList().sortedByDescending { it.second }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     private fun getMonthName(month: Int): String {
         return when (month) {
             1 -> "Enero"; 2 -> "Febrero"; 3 -> "Marzo"; 4 -> "Abril"
@@ -105,7 +142,10 @@ class SalesHistoryViewModel(private val saleRepo: SaleRepository) : ViewModel() 
     }
 }
 
-class SalesHistoryViewModelFactory(private val saleRepo: SaleRepository) : ViewModelProvider.Factory {
+class SalesHistoryViewModelFactory(
+    private val saleRepo: SaleRepository,
+    private val productRepo: ProductRepository
+) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = SalesHistoryViewModel(saleRepo) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = SalesHistoryViewModel(saleRepo, productRepo) as T
 }

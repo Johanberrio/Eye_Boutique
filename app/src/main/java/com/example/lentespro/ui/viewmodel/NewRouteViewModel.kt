@@ -15,6 +15,7 @@ import java.io.InputStream
 data class RouteCartLine(
     val productId: String,
     val name: String,
+    val isHalloween: Boolean,
     val stock: Int,
     val unitPrice: Double,
     val quantity: Int
@@ -151,7 +152,7 @@ class NewRouteViewModel(
         _ui.update { state ->
             val existing = state.cart.find { it.productId == p.id }
             val newCart = if (existing == null) {
-                state.cart + RouteCartLine(p.id, "${p.nombre} (${p.marca})", p.cantidad, p.precioVenta, 1)
+                state.cart + RouteCartLine(p.id, "${p.nombre} (${p.marca})", p.isHalloween, p.cantidad, p.precioVenta, 1)
             } else {
                 state.cart.map { if (it.productId == p.id) it.copy(quantity = (it.quantity + 1).coerceAtMost(p.cantidad)) else it }
             }

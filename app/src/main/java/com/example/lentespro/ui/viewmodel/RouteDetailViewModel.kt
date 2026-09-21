@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 
 data class RouteDetailLineUi(
     val productName: String,
+    val isHalloween: Boolean,
     val unitPrice: Double,
     val dispatched: Int,
     val sold: Int,
@@ -40,7 +41,8 @@ sealed class RouteDetailEvent {
 
 class RouteDetailViewModel(
     private val saleId: String,
-    private val repo: SaleRepository
+    private val repo: SaleRepository,
+    private val productRepo: ProductRepository
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(RouteDetailUiState(saleId = saleId, isLoading = true))
@@ -69,11 +71,15 @@ class RouteDetailViewModel(
                     return@launch
                 }
                 
+                val allProducts = productRepo.observeAll().first()
+                val halloweenProductIds = allProducts.filter { it.isHalloween }.map { it.id }.toSet()
+                
                 val lines = sale.items.map { item ->
                     val sold = item.soldQty ?: 0
                     val returned = item.returnedQty ?: (item.dispatchedQty - sold)
                     RouteDetailLineUi(
                         productName = item.productName,
+                        isHalloween = item.productId in halloweenProductIds, // ✅ Compara contra catálogo actual
                         unitPrice = item.unitPrice,
                         dispatched = item.dispatchedQty,
                         sold = sold,
@@ -107,9 +113,10 @@ class RouteDetailViewModel(
 
 class RouteDetailViewModelFactory(
     private val saleId: String,
-    private val repo: SaleRepository
+    private val repo: SaleRepository,
+    private val productRepo: ProductRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        RouteDetailViewModel(saleId, repo) as T
+        RouteDetailViewModel(saleId, repo, productRepo) as T
 }

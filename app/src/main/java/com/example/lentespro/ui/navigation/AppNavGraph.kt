@@ -136,7 +136,10 @@ fun AppNavGraph(
 
         composable(Routes.SalesHistory.route) {
             val vm: SalesHistoryViewModel = viewModel(
-                factory = SalesHistoryViewModelFactory(container.saleRepository)
+                factory = SalesHistoryViewModelFactory(
+                    saleRepo = container.saleRepository,
+                    productRepo = container.productRepository
+                )
             )
             SalesHistoryScreen(
                 viewModel = vm,
@@ -247,7 +250,8 @@ fun AppNavGraph(
                     saleId = saleId,
                     repo = container.saleRepository,
                     authProfileRepo = container.authProfileRepository,
-                    usersRemoteRepo = container.usersRemoteRepository
+                    usersRemoteRepo = container.usersRemoteRepository,
+                    productRepo = container.productRepository
                 )
             )
             FinalizeRouteScreen(
@@ -269,7 +273,8 @@ fun AppNavGraph(
             val vm: RouteDetailViewModel = viewModel(
                 factory = RouteDetailViewModelFactory(
                     saleId = saleId,
-                    repo = container.saleRepository
+                    repo = container.saleRepository,
+                    productRepo = container.productRepository
                 )
             )
             RouteDetailScreen(

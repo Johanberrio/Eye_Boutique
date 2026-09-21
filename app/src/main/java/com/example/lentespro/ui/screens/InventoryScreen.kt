@@ -134,7 +134,7 @@ private fun ProductCard(
                     
                     Column {
                         Text(
-                            text = "${product.nombre} (${product.marca})",
+                            text = "${product.nombre} (${product.marca})${if (product.isHalloween) " \uD83C\uDF83" else ""}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )

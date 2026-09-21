@@ -105,7 +105,10 @@ fun RouteDetailScreen(
                 items(state.lines, key = { it.productName }) { line ->
                     Card {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(line.productName, style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                text = "${line.productName}${if (line.isHalloween) " \uD83C\uDF83" else ""}", 
+                                style = MaterialTheme.typography.titleSmall
+                            )
                             Text("Precio: ${Formatters.money(line.unitPrice)}")
                             Text("Despachado: ${line.dispatched} | Vendido: ${line.sold} | Devuelto: ${line.returned}")
                             Text("Subtotal vendido: ${Formatters.money(line.soldTotal)}")

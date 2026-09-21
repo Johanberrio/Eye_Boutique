@@ -188,7 +188,11 @@ fun NewRouteScreen(
                     Card {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(line.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = "${line.name}${if (line.isHalloween) " \uD83C\uDF83" else ""}", 
+                                    style = MaterialTheme.typography.titleSmall, 
+                                    fontWeight = FontWeight.Bold
+                                )
                                 IconButton(onClick = { viewModel.removeFromCart(line.productId) }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Quitar", tint = MaterialTheme.colorScheme.error)
                                 }
@@ -230,7 +234,10 @@ fun NewRouteScreen(
             items(state.products, key = { "prod_${it.id}" }) { p ->
                 Card(onClick = { viewModel.addToCart(p) }, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("${p.nombre} (${p.marca})", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "${p.nombre} (${p.marca})${if (p.isHalloween) " \uD83C\uDF83" else ""}", 
+                            style = MaterialTheme.typography.titleSmall
+                        )
                         Text("Stock: ${p.cantidad} | ${Formatters.money(p.precioVenta)}", style = MaterialTheme.typography.bodySmall)
                     }
                 }

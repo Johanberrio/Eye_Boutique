@@ -1,5 +1,6 @@
 package com.example.lentespro.util
 
+import android.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -46,7 +47,7 @@ class NotificationHelper(private val context: Context) {
         )
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setSmallIcon(R.drawable.stat_notify_error)
             .setContentTitle("¡Lente Agotado!")
             .setContentText("El producto '$productName' se ha quedado sin unidades.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -57,6 +58,32 @@ class NotificationHelper(private val context: Context) {
         try {
             with(NotificationManagerCompat.from(context)) {
                 notify(productName.hashCode(), builder.build())
+            }
+        } catch (e: SecurityException) { }
+    }
+
+    fun notifyLensReturned(productName: String, returnedQty: Int) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 
+            (productName + "returned").hashCode(), 
+            intent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_menu_revert) // Icono de devolver
+            .setContentTitle("Lente Devuelto")
+            .setContentText("Se devolvieron $returnedQty unidad(es) de '$productName' al inventario.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        try {
+            with(NotificationManagerCompat.from(context)) {
+                notify((productName + "returned").hashCode(), builder.build())
             }
         } catch (e: SecurityException) { }
     }

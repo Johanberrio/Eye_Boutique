@@ -30,51 +30,146 @@ fun SalesHistoryScreen(
     viewModel: SalesHistoryViewModel,
     onBack: () -> Unit
 ) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val history by viewModel.historyEntries.collectAsState()
+    val globalNameStats by viewModel.globalNameStats.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Historial de Ventas") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+            Column {
+                TopAppBar(
+                    title = { Text("Historial de Ventas") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        }
                     }
+                )
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        text = { Text("Mensual") }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 },
+                        text = { Text("Total") }
+                    )
                 }
-            )
+            }
         }
     ) { padding ->
-        if (history.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+        if (selectedTabIndex == 0) {
+            MonthlyHistoryTab(history, padding)
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                val grouped = history.groupBy { it.year }
-                
-                grouped.forEach { (year, entries) ->
-                    item {
-                        Text(
-                            text = "Año $year",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+            GlobalNameHistoryTab(globalNameStats, padding)
+        }
+    }
+}
 
-                    // Gráfica de Barras Anual (Ventas totales por mes)
-                    item {
-                        YearlySalesChart(entries)
+@Composable
+private fun MonthlyHistoryTab(history: List<HistoryMonthEntry>, padding: PaddingValues) {
+    if (history.isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            val grouped = history.groupBy { it.year }
+            
+            grouped.forEach { (year, entries) ->
+                item {
+                    Text(
+                        text = "Año $year",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Gráfica de Barras Anual (Ventas totales por mes)
+                item {
+                    YearlySalesChart(entries)
+                }
+                
+                items(entries) { entry ->
+                    HistoryCard(entry)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GlobalNameHistoryTab(nameStats: List<Pair<String, Int>>, padding: PaddingValues) {
+    if (nameStats.isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Text("No hay datos suficientes", color = Color.Gray)
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(padding)
+            .fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Ventas históricas por Lente",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        val maxNameCount = nameStats.maxOf { it.second }.coerceAtLeast(1)
+
+        items(nameStats) { (lensName, count) ->
+            val barFactor by animateFloatAsState(
+                targetValue = count.toFloat() / maxNameCount,
+                animationSpec = tween(durationMillis = 800), label = ""
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = lensName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(text = "$count unidades", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
+                    Spacer(Modifier.height(8.dp))
                     
-                    items(entries) { entry ->
-                        HistoryCard(entry)
+                    // Barra de progreso personalizada
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(barFactor)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
                     }
                 }
             }

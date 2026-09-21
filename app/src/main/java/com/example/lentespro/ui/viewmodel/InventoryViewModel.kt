@@ -107,6 +107,53 @@ class InventoryViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    // ✅ Lentes de Halloween vendidos HOY (compara contra el catálogo actual)
+    val ventasHalloweenHoyCount: StateFlow<Int> = combine(allSales, allProducts) { sales, products ->
+        val halloweenProductIds = products.filter { it.isHalloween }.map { it.id }.toSet()
+        val todayStart = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota")).apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        sales.filter { 
+            it.status == SaleStatus.FINALIZADA && 
+            (it.finalizedAtEpochMillis ?: 0L) >= todayStart 
+        }.sumOf { sale -> 
+            sale.items
+                .filter { it.productId in halloweenProductIds } // Compara con el estado ACTUAL del lente
+                .sumOf { it.soldQty ?: 0 } 
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    // ✅ Lentes de Halloween vendidos ESTE MES ACTUAL (compara contra catálogo actual)
+    val ventasHalloweenPeriodoActualCount: StateFlow<Int> = combine(allSales, allProducts) { sales, products ->
+        val halloweenProductIds = products.filter { it.isHalloween }.map { it.id }.toSet()
+        
+        val zone = TimeZone.getTimeZone("America/Bogota")
+        val baseDate = Calendar.getInstance(zone).apply {
+            set(2026, Calendar.APRIL, 14, 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        
+        val now = System.currentTimeMillis()
+        if (now < baseDate) return@combine 0 
+
+        val msPerDay = 24L * 60 * 60 * 1000
+        val msPerPeriod = 30 * msPerDay
+        val currentPeriodStart = baseDate + ((now - baseDate) / msPerPeriod * msPerPeriod)
+        
+        sales.filter { 
+            it.status == SaleStatus.FINALIZADA && 
+            (it.finalizedAtEpochMillis ?: 0L) >= currentPeriodStart 
+        }.sumOf { sale -> 
+            sale.items
+                .filter { it.productId in halloweenProductIds } // Compara con el estado ACTUAL del lente
+                .sumOf { it.soldQty ?: 0 } 
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     // ✅ NUEVO: Total histórico de lentes vendidos en toda la base de datos
     val totalHistoricoVendido: StateFlow<Int> = allSales
         .map { list -> 

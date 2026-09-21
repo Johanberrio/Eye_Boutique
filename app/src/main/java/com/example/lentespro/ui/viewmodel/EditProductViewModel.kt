@@ -32,6 +32,7 @@ data class EditProductUiState(
     val notas: String = "",
     val imageUrl: String? = null,
     val selectedImageUri: Uri? = null,
+    val isHalloween: Boolean = false,
     val isLoading: Boolean = false,
     val isAnalyzing: Boolean = false
 )
@@ -177,6 +178,7 @@ class EditProductViewModel(
                     fechaCaducidadEpochMillis = Formatters.dateTextToEpochMillisOrNull(state.fechaCaducidad),
                     lote = state.lote.trim().ifBlank { null },
                     notas = state.notas.trim().ifBlank { null },
+                    isHalloween = state.isHalloween,
                     actualizadoEnEpochMillis = System.currentTimeMillis()
                 )
                 repo.upsert(entity)
@@ -202,6 +204,7 @@ class EditProductViewModel(
         fechaCaducidad = if (fechaCaducidadEpochMillis == null) "" else Formatters.epochMillisToDateText(fechaCaducidadEpochMillis),
         lote = lote.orEmpty(),
         notas = notas.orEmpty(),
+        isHalloween = this.isHalloween,
         isLoading = false
     )
 }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 data class FinalizeLine(
     val productId: String,
     val name: String,
+    val isHalloween: Boolean,
     val dispatched: Int,
     val unitPrice: Double,
     val sold: Int
@@ -43,7 +44,8 @@ class FinalizeRouteViewModel(
     private val saleId: String,
     private val repo: SaleRepository,
     private val authProfileRepo: AuthProfileRepository,
-    private val usersRemoteRepo: UsersRemoteRepository
+    private val usersRemoteRepo: UsersRemoteRepository,
+    private val productRepo: ProductRepository
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(FinalizeUiState(saleId = saleId, isLoading = true))
@@ -68,11 +70,12 @@ class FinalizeRouteViewModel(
                     return@launch
                 }
                 
-                // (C) Cargar perfil del usuario actual
+                // (C) Cargar perfil del usuario actual y productos
                 val me = authProfileRepo.getUserProfile()
+                val allProducts = productRepo.observeAll().first()
 
                 _ui.update { st ->
-                    sale.toUi().copy(
+                    sale.toUi(allProducts).copy(
                         saleNumber = saleNumber,
                         isAdmin = (me.role == UserRole.ADMIN),
                         selectedSellerUid = me.uid,
@@ -144,7 +147,8 @@ class FinalizeRouteViewModel(
         }
     }
 
-    private fun SaleEntity.toUi(): FinalizeUiState {
+    private fun SaleEntity.toUi(allProducts: List<ProductEntity>): FinalizeUiState {
+        val halloweenProductIds = allProducts.filter { it.isHalloween }.map { it.id }.toSet()
         return FinalizeUiState(
             saleId = id,
             messengerName = messengerName ?: "",
@@ -153,6 +157,7 @@ class FinalizeRouteViewModel(
                 FinalizeLine(
                     productId = it.productId,
                     name = it.productName,
+                    isHalloween = it.productId in halloweenProductIds, // ✅ Compara contra catálogo actual
                     dispatched = it.dispatchedQty,
                     unitPrice = it.unitPrice,
                     sold = 0
@@ -167,9 +172,10 @@ class FinalizeRouteViewModelFactory(
     private val saleId: String,
     private val repo: SaleRepository,
     private val authProfileRepo: AuthProfileRepository,
-    private val usersRemoteRepo: UsersRemoteRepository
+    private val usersRemoteRepo: UsersRemoteRepository,
+    private val productRepo: ProductRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        FinalizeRouteViewModel(saleId, repo, authProfileRepo, usersRemoteRepo) as T
+        FinalizeRouteViewModel(saleId, repo, authProfileRepo, usersRemoteRepo, productRepo) as T
 }

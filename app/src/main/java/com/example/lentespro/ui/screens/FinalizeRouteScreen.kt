@@ -13,12 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.lentespro.data.SellerOption
 import com.example.lentespro.ui.viewmodel.FinalizeEvent
 import com.example.lentespro.ui.viewmodel.FinalizeRouteViewModel
 import com.example.lentespro.util.Formatters
+import com.example.lentespro.util.NotificationHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,12 +31,23 @@ fun FinalizeRouteScreen(
     val state by viewModel.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
 
+    val context = LocalContext.current
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
             when (ev) {
                 is FinalizeEvent.Error -> snackbar.showSnackbar(ev.message)
                 FinalizeEvent.Success -> {
                     snackbar.showSnackbar("Ruta finalizada ✅ Inventario actualizado")
+                    
+                    // Notificar por cada lente devuelto
+                    val notificationHelper = NotificationHelper(context)
+                    state.lines.forEach { line ->
+                        if (line.returned > 0) {
+                            notificationHelper.notifyLensReturned(line.name, line.returned)
+                        }
+                    }
+
                     onBack()
                 }
             }
@@ -134,7 +147,10 @@ fun FinalizeRouteScreen(
                 items(state.lines, key = { it.productId }) { line ->
                     Card {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(line.name, style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                text = "${line.name}${if (line.isHalloween) " \uD83C\uDF83" else ""}", 
+                                style = MaterialTheme.typography.titleSmall
+                            )
                             Text("Despachado: ${line.dispatched}  |  Precio: ${Formatters.money(line.unitPrice)}")
 
                             OutlinedTextField(

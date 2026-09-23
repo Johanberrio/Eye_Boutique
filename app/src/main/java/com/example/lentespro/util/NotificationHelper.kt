@@ -75,7 +75,7 @@ class NotificationHelper(private val context: Context) {
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_menu_revert) // Icono de devolver
-            .setContentTitle("Lente Devuelto")
+            .setContentTitle("Lente nuevamente Disponible")
             .setContentText("Se devolvieron $returnedQty unidad(es) de '$productName' al inventario.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)

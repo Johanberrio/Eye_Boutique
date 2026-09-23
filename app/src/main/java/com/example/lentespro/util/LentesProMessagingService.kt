@@ -10,11 +10,16 @@ class LentesProMessagingService : FirebaseMessagingService() {
 
         // Cuando la app está en segundo plano/cerrada, procesamos los datos ("data payload")
         if (remoteMessage.data.isNotEmpty()) {
+            val type = remoteMessage.data["type"] ?: "stock_out"
             val productName = remoteMessage.data["productName"] ?: "Lente"
-
-            // Reutilizamos tu lógica de NotificationHelper existente
             val notificationHelper = NotificationHelper(applicationContext)
-            notificationHelper.notifyStockOut(productName)
+
+            if (type == "returned") {
+                val returnedQty = remoteMessage.data["returnedQty"]?.toIntOrNull() ?: 1
+                notificationHelper.notifyLensReturned(productName, returnedQty)
+            } else {
+                notificationHelper.notifyStockOut(productName)
+            }
         }
     }
 

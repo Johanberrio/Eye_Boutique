@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.example.lentespro.ui.navigation.AppNavGraph
 import com.example.lentespro.ui.theme.LentesProTheme
+import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : FragmentActivity() {
 
@@ -35,6 +36,9 @@ class MainActivity : FragmentActivity() {
 
         // Solicitar permiso de notificaciones si es necesario (Android 13+)
         checkNotificationPermission()
+
+        // Suscribirse globalmente a las alertas de stock/devoluciones para que TODOS los celulares las reciban
+        FirebaseMessaging.getInstance().subscribeToTopic("stock_alerts")
 
         setContent {
             val darkModePref by container.biometricPrefs.darkModeFlow.collectAsState(initial = null)
